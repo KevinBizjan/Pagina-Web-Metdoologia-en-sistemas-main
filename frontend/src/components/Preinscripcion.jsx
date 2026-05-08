@@ -24,7 +24,7 @@ const Preinscripcion = () => {
         setMessage({ type: '', text: '' });
 
         try {
-            const response = await fetch('http://localhost:3000/api/preinscripciones', {
+            const response = await fetch('https://pagina-web-metdoologia-en-sistemas-main.onrender.com/api/preinscripciones', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)

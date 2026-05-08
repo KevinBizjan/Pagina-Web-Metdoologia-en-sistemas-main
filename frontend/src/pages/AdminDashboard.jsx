@@ -15,7 +15,7 @@ const AdminDashboard = () => {
     const fetchPreinscripciones = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/preinscripciones', {
+            const response = await fetch('https://pagina-web-metdoologia-en-sistemas-main.onrender.com/api/preinscripciones', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -32,7 +32,7 @@ const AdminDashboard = () => {
     const updateStatus = async (id, nuevoEstado) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/preinscripciones/${id}/status`, {
+            const response = await fetch(`https://pagina-web-metdoologia-en-sistemas-main.onrender.com/api/preinscripciones/${id}/status`, {
                 method: 'PATCH',
                 headers: { 
                     'Content-Type': 'application/json',
