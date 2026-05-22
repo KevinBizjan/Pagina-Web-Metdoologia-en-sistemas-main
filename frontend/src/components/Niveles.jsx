@@ -12,7 +12,6 @@ const Niveles = () => {
             <div className="nivel-card-bg" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80')" }}></div>
             <div className="nivel-card-overlay"></div>
             <div className="nivel-card-content">
-              <div className="nivel-card-icon">🌱</div>
               <h3>Nivel Inicial</h3>
               <p>Sala de 3, 4 y 5 años · Jornada extendida</p>
             </div>
@@ -21,7 +20,6 @@ const Niveles = () => {
             <div className="nivel-card-bg" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&q=80')" }}></div>
             <div className="nivel-card-overlay"></div>
             <div className="nivel-card-content">
-              <div className="nivel-card-icon">📖</div>
               <h3>Nivel Primario</h3>
               <p>1° a 6° grado · Apoyo escolar incluido</p>
             </div>
@@ -30,7 +28,6 @@ const Niveles = () => {
             <div className="nivel-card-bg" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1509062522246-3755977927d7?w=600&q=80')" }}></div>
             <div className="nivel-card-overlay"></div>
             <div className="nivel-card-content">
-              <div className="nivel-card-icon">🎓</div>
               <h3>Nivel Secundario</h3>
               <p>1° a 5° año · Orientación en Ciencias y Humanidades</p>
             </div>

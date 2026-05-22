@@ -18,7 +18,7 @@ const Idiomas = () => {
           }}
         >
           <div className="serv-card fade-in" style={{ borderTopColor: '#012169' }}>
-            <div className="serv-icon">
+            <div className="serv-icon" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <img
                 src="https://flagcdn.com/w80/gb.png"
                 alt="Bandera Reino Unido"
@@ -33,7 +33,7 @@ const Idiomas = () => {
             className="serv-card fade-in"
             style={{ borderTopColor: '#009c3b', transitionDelay: '.1s' }}
           >
-            <div className="serv-icon">
+            <div className="serv-icon" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <img
                 src="https://flagcdn.com/w80/br.png"
                 alt="Bandera Brasil"
@@ -51,7 +51,7 @@ const Idiomas = () => {
             className="serv-card fade-in"
             style={{ borderTopColor: '#002395', transitionDelay: '.2s' }}
           >
-            <div className="serv-icon">
+            <div className="serv-icon" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <img
                 src="https://flagcdn.com/w80/fr.png"
                 alt="Bandera Francia"

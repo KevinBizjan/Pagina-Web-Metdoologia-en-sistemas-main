@@ -78,15 +78,42 @@ const PadreDashboard = () => {
                 </div>
 
                 {/* Calendario de Pagos / Comedor */}
-                <div style={cardStyle}>
-                    <h3 style={cardTitleStyle}>💳 Gestión Administrativa</h3>
+                <div className="dashboard-card" style={cardStyle}>
+                    <h3 style={cardTitleStyle}>💳 Estado de Cuenta</h3>
                     <div style={{ marginTop: '20px' }}>
-                        <div style={{ padding: '12px', border: '1px dashed #cbd5e1', borderRadius: '8px', marginBottom: '10px' }}>
-                            <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>Próximo Vencimiento: 10/06</p>
-                            <p style={{ fontSize: '0.8rem', color: 'var(--text-sm)' }}>Cuota Junio 2026</p>
+                        <div style={{ 
+                            padding: '20px', background: '#f0f9ff', borderRadius: '12px', border: '1px solid #bae6fd',
+                            textAlign: 'center', marginBottom: '20px'
+                        }}>
+                            <span style={labelStyle}>Saldo Pendiente Total</span>
+                            <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--blue)', marginTop: '4px' }}>$0.00</div>
+                            <p style={{ fontSize: '0.75rem', color: '#0369a1', marginTop: '8px', fontWeight: 700 }}>✅ Cuenta al día</p>
                         </div>
-                        <button className="btn btn-green" style={{ width: '100%', fontSize: '0.85rem' }}>Pagar Cuota Online</button>
-                        <button className="btn" style={{ width: '100%', marginTop: '10px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}>Menú del Comedor</button>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                <span>Matrícula 2027</span>
+                                <span style={{ fontWeight: 800, color: 'var(--green)' }}>PAGADO</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                <span>Seguro Escolar</span>
+                                <span style={{ fontWeight: 800, color: 'var(--green)' }}>PAGADO</span>
+                            </div>
+                        </div>
+
+                        <button className="btn btn-hero-outline" style={{ width: '100%', marginTop: '20px', fontSize: '0.8rem' }}>📥 Descargar Historial (PDF)</button>
+                    </div>
+                </div>
+
+                {/* Comedor y Otros */}
+                <div className="dashboard-card" style={cardStyle}>
+                    <h3 style={cardTitleStyle}>🍎 Servicios Extra</h3>
+                    <div style={{ marginTop: '20px' }}>
+                        <div style={infoBox}>
+                            <span style={labelStyle}>Comedor Escolar</span>
+                            <span style={{ ...valueStyle, color: 'var(--blue)' }}>Activo (Menú General)</span>
+                        </div>
+                        <button className="btn btn-green" style={{ width: '100%', marginTop: '16px', fontSize: '0.85rem' }}>Ver Menú Semanal</button>
                     </div>
                 </div>
             </div>

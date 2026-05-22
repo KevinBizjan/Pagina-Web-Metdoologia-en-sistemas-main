@@ -17,6 +17,20 @@ async function seed() {
         });
         stmt.finalize();
         console.log('Usuarios de prueba creados.');
+
+        // Niveles
+        const niveles = [['Inicial'], ['Primario'], ['Secundario']];
+        const stmtNiv = db.prepare(`INSERT OR IGNORE INTO niveles (nombre) VALUES (?)`);
+        niveles.forEach(n => stmtNiv.run(n));
+        stmtNiv.finalize();
+
+        // Aulas
+        const aulas = [['Aula 101', 30], ['Aula 102', 30], ['Laboratorio de Ciencias', 20]];
+        const stmtAul = db.prepare(`INSERT OR IGNORE INTO aulas (nombre, capacidad) VALUES (?, ?)`);
+        aulas.forEach(a => stmtAul.run(a));
+        stmtAul.finalize();
+
+        console.log('Datos académicos iniciales creados.');
     });
 }
 

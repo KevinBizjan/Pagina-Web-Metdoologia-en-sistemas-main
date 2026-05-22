@@ -15,16 +15,16 @@ const QuickAccess = () => {
           <div className="quick-icon qi-blue">🏫</div>
           <div>
             <h3>Portal para docentes</h3>
-            <p>Acceso exclusivo para el personal educativo</p>
+            <p>Acceso exclusivo para los docentes/maestros</p>
           </div>
         </a>
-        <div className="quick-card fade-in" style={{ transitionDelay: '.2s' }}>
-          <div className="quick-icon qi-orange">💻</div>
+        <a href="/login?role=admin" className="quick-card fade-in" style={{ transitionDelay: '.2s', textDecoration: 'none', color: 'inherit' }}>
+          <div className="quick-icon qi-orange">💼</div>
           <div>
-            <h3>Plataforma Educativa</h3>
-            <p>Accedé a clases virtuales y recursos</p>
+            <h3>Portal para staff</h3>
+            <p>Acceso exclusivo para el personal educativo y administración</p>
           </div>
-        </div>
+        </a>
       </div>
     </div>
   );

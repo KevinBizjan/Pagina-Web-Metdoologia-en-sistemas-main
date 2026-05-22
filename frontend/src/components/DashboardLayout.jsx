@@ -7,32 +7,45 @@ const DashboardLayout = ({ title, children }) => {
     const navigate = useNavigate();
 
     const handleLogout = () => {
-        logout();
-        navigate('/');
+        if (window.confirm('¿Estás seguro de que deseas cerrar la sesión?')) {
+            logout();
+            navigate('/');
+        }
     };
 
     return (
-        <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'Nunito, sans-serif' }}>
+        <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: 'Nunito, sans-serif' }}>
             {/* Header del Dashboard */}
             <header style={{ 
-                background: 'var(--white)', 
-                padding: '16px 24px', 
-                boxShadow: 'var(--shadow-sm)',
+                background: 'linear-gradient(135deg, var(--blue) 0%, var(--blue-lt) 100%)', 
+                padding: '12px 24px', 
+                boxShadow: '0 4px 20px rgba(26,95,168,0.2)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 position: 'sticky',
                 top: 0,
-                zIndex: 100
+                zIndex: 100,
+                color: 'white'
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div className="logo-icon" style={{ width: '40px', height: '40px', fontSize: '1.2rem' }}>🎓</div>
-                    <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.4rem', color: 'var(--blue)', margin: 0 }}>{title}</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ background: 'white', padding: '4px', borderRadius: '10px' }}>
+                        <img src="/img/logo.png" alt="Logo" style={{ height: '35px', display: 'block' }} />
+                    </div>
+                    <div>
+                        <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.3rem', color: 'white', margin: 0, letterSpacing: '0.02em' }}>{title}</h1>
+                        <p style={{ fontSize: '0.65rem', margin: 0, fontWeight: 700, textTransform: 'uppercase', opacity: 0.8 }}>Gestión Institucional</p>
+                    </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-sm)' }}>Hola, {user?.nombre}</span>
-                    <button onClick={() => navigate('/')} className="btn" style={{ background: '#f1f5f9', fontSize: '0.8rem', padding: '8px 14px' }}>Inicio</button>
-                    <button onClick={handleLogout} className="btn btn-violet" style={{ fontSize: '0.8rem', padding: '8px 14px' }}>Salir</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0 }}>{user?.nombre}</p>
+                        <p style={{ fontSize: '0.65rem', margin: 0, textTransform: 'uppercase', fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{user?.rol}</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => navigate('/')} className="btn" style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.75rem', padding: '8px 16px' }}>Inicio</button>
+                        <button onClick={handleLogout} className="btn" style={{ background: 'var(--orange)', color: 'white', fontSize: '0.75rem', padding: '8px 16px', boxShadow: '0 4px 10px rgba(245,130,13,0.3)' }}>Cerrar Sesión</button>
+                    </div>
                 </div>
             </header>
 

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 const Preinscripcion = () => {
     const [formData, setFormData] = useState({
         alumno_nombre: '',
+        alumno_dni: '',
         alumno_edad: '',
         nivel: '',
         turno: '',
@@ -22,6 +23,18 @@ const Preinscripcion = () => {
         e.preventDefault();
         
         // Validaciones extra
+        const dniRegex = /^\d+$/;
+        if (!dniRegex.test(formData.alumno_dni)) {
+            setMessage({ type: 'error', text: 'El DNI debe ser estrictamente numérico (sin puntos ni letras).' });
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.tutor_email)) {
+            setMessage({ type: 'error', text: 'El correo electrónico no tiene un formato válido.' });
+            return;
+        }
+
         if (formData.alumno_edad < 3 || formData.alumno_edad > 18) {
             setMessage({ type: 'error', text: 'La edad del alumno debe estar entre 3 y 18 años.' });
             return;
@@ -48,6 +61,7 @@ const Preinscripcion = () => {
                 setMessage({ type: 'success', text: '¡Preinscripción enviada con éxito! Nos contactaremos pronto.' });
                 setFormData({
                     alumno_nombre: '',
+                    alumno_dni: '',
                     alumno_edad: '',
                     nivel: '',
                     turno: '',
@@ -107,17 +121,23 @@ const Preinscripcion = () => {
                                     <input type="text" name="alumno_nombre" value={formData.alumno_nombre} onChange={handleChange} required style={inputStyle} placeholder="Nombre y Apellido" />
                                 </div>
                                 <div style={{ marginBottom: '16px' }}>
-                                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '700', fontSize: '0.85rem' }}>Edad</label>
-                                    <input type="number" name="alumno_edad" value={formData.alumno_edad} onChange={handleChange} required style={inputStyle} placeholder="Ej: 6" />
+                                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '700', fontSize: '0.85rem' }}>DNI (Sin puntos ni letras)</label>
+                                    <input type="text" name="alumno_dni" value={formData.alumno_dni} onChange={handleChange} required style={inputStyle} placeholder="Solo números" />
                                 </div>
-                                <div style={{ marginBottom: '16px' }}>
-                                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '700', fontSize: '0.85rem' }}>Nivel Educativo</label>
-                                    <select name="nivel" value={formData.nivel} onChange={handleChange} required style={inputStyle}>
-                                        <option value="">Seleccionar nivel</option>
-                                        <option value="Inicial">Nivel Inicial</option>
-                                        <option value="Primario">Nivel Primario</option>
-                                        <option value="Secundario">Nivel Secundario</option>
-                                    </select>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    <div style={{ marginBottom: '16px' }}>
+                                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '700', fontSize: '0.85rem' }}>Edad</label>
+                                        <input type="number" name="alumno_edad" value={formData.alumno_edad} onChange={handleChange} required style={inputStyle} placeholder="Ej: 6" />
+                                    </div>
+                                    <div style={{ marginBottom: '16px' }}>
+                                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '700', fontSize: '0.85rem' }}>Nivel</label>
+                                        <select name="nivel" value={formData.nivel} onChange={handleChange} required style={inputStyle}>
+                                            <option value="">Elegir...</option>
+                                            <option value="Inicial">Inicial</option>
+                                            <option value="Primario">Primario</option>
+                                            <option value="Secundario">Secundario</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div style={{ marginBottom: '16px' }}>
                                     <label style={{ display: 'block', marginBottom: '6px', fontWeight: '700', fontSize: '0.85rem' }}>Turno Preferente</label>

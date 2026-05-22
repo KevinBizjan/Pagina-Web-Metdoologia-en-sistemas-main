@@ -16,6 +16,10 @@ const preinscripcionRoutes = require('./routes/preinscripcion.routes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/preinscripciones', preinscripcionRoutes);
+app.use('/api/academico', require('./routes/academico.routes'));
+app.use('/api/financiero', require('./routes/financiero.routes'));
+app.use('/api/servicios', require('./routes/servicios.routes'));
+app.use('/api/comunicacion', require('./routes/comunicacion.routes'));
 
 // Rutas base (Placeholder)
 app.get('/', (req, res) => {
