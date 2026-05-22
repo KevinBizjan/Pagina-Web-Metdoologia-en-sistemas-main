@@ -4,20 +4,20 @@ const QuickAccess = () => {
   return (
     <div className="quick-access">
       <div className="quick-grid">
-        <div className="quick-card fade-in">
+        <a href="#preinscripcion" className="quick-card fade-in" style={{ textDecoration: 'none', color: 'inherit' }}>
           <div className="quick-icon qi-green">📝</div>
           <div>
             <h3>Admisión Online</h3>
             <p>Completá el formulario de preinscripción</p>
           </div>
-        </div>
-        <div className="quick-card fade-in" style={{ transitionDelay: '.1s' }}>
+        </a>
+        <a href="/login?role=docente" className="quick-card fade-in" style={{ transitionDelay: '.1s', textDecoration: 'none', color: 'inherit' }}>
           <div className="quick-icon qi-blue">🏫</div>
           <div>
-            <h3>Gestión Institucional</h3>
-            <p>Portal para docentes y administración</p>
+            <h3>Portal para docentes</h3>
+            <p>Acceso exclusivo para el personal educativo</p>
           </div>
-        </div>
+        </a>
         <div className="quick-card fade-in" style={{ transitionDelay: '.2s' }}>
           <div className="quick-icon qi-orange">💻</div>
           <div>

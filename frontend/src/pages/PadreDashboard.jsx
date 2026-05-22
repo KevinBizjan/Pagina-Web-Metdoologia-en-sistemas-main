@@ -13,6 +13,30 @@ const PadreDashboard = () => {
 
     return (
         <DashboardLayout title="Panel para Padres">
+            {/* Resumen Rápido */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                <div className="dashboard-card" style={{ ...cardStyle, textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>📚</div>
+                    <span style={labelStyle}>Promedio Gral</span>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--blue)' }}>8.5</div>
+                </div>
+                <div className="dashboard-card" style={{ ...cardStyle, textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>✅</div>
+                    <span style={labelStyle}>Asistencia</span>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--green)' }}>95%</div>
+                </div>
+                <div className="dashboard-card" style={{ ...cardStyle, textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>💰</div>
+                    <span style={labelStyle}>Estado Cuota</span>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--blue)', marginTop: '8px' }}>AL DÍA</div>
+                </div>
+                <div className="dashboard-card" style={{ ...cardStyle, textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>📅</div>
+                    <span style={labelStyle}>Faltas</span>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--orange)' }}>2</div>
+                </div>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
                 {/* Información del Alumno */}
                 <div style={cardStyle}>

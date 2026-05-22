@@ -20,11 +20,23 @@ const Preinscripcion = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Validaciones extra
+        if (formData.alumno_edad < 3 || formData.alumno_edad > 18) {
+            setMessage({ type: 'error', text: 'La edad del alumno debe estar entre 3 y 18 años.' });
+            return;
+        }
+
+        if (formData.tutor_telefono.length < 10) {
+            setMessage({ type: 'error', text: 'El teléfono debe tener al menos 10 dígitos (incluyendo código de área).' });
+            return;
+        }
+
         setLoading(true);
         setMessage({ type: '', text: '' });
 
         try {
-            const response = await fetch('https://pagina-web-metdoologia-en-sistemas-main.onrender.com/api/preinscripciones', {
+            const response = await fetch('http://localhost:3000/api/preinscripciones', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)

@@ -55,16 +55,19 @@ const Footer = () => {
           <h4>Acceso Plataforma</h4>
           <p style={{ marginBottom: '14px', fontSize: '.85rem' }}>Ingresá a tu espacio personal para gestionar información académica.</p>
           <div className="footer-btns">
-            <a href="#" className="footer-btn footer-btn-green">👨‍👩‍👧 Acceso Padres</a>
-            <a href="#" className="footer-btn footer-btn-outline">🎒 Acceso Alumnos</a>
-            <a href="#" className="footer-btn footer-btn-outline">👨‍🏫 Acceso Docentes</a>
+            <a href="/login?role=padre" className="footer-btn footer-btn-green">👨‍👩‍👧 Acceso Padres</a>
+            <a href="/login?role=alumno" className="footer-btn footer-btn-outline">🎒 Acceso Alumnos</a>
+            <a href="/login?role=docente" className="footer-btn footer-btn-outline">👨‍🏫 Acceso Docentes</a>
           </div>
         </div>
       </div>
 
-      <div className="footer-bottom">
+      <div className="footer-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span>© 2026 Educar para Transformar. Todos los derechos reservados.</span>
-        <span>Diseñado para apertura Marzo 2027 · Resistencia, Chaco, Argentina</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <span style={{ fontSize: '0.75rem' }}>Diseñado para apertura Marzo 2027 · Resistencia, Chaco, Argentina</span>
+          <a href="/login?role=admin" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', textDecoration: 'none', fontWeight: 700 }}>Acceso Administrador</a>
+        </div>
       </div>
     </footer>
   );

@@ -1,21 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const LoginPage = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const { login } = useAuth();
+    const { login, user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Determinar qué tipo de portal mostrar
+    const searchParams = new URLSearchParams(location.search);
+    const roleParam = searchParams.get('role');
+
+    const getPortalInfo = () => {
+        switch (roleParam) {
+            case 'admin': return { title: 'Portal Administrador', sub: 'Acceso para gestión institucional' };
+            case 'docente': return { title: 'Portal Docente', sub: 'Acceso exclusivo para el personal educativo' };
+            case 'alumno': return { title: 'Portal Alumno', sub: 'Accedé a tus clases y materiales' };
+            case 'padre': return { title: 'Portal Familiar', sub: 'Seguimiento académico de tus hijos' };
+            default: return { title: 'Bienvenido', sub: 'Ingresá a la plataforma institucional' };
+        }
+    };
+
+    const portal = getPortalInfo();
+
+    useEffect(() => {
+        if (user) {
+            redirectUser(user.rol);
+        }
+    }, [user]);
+
+    const redirectUser = (rol) => {
+        switch (rol) {
+            case 'admin': navigate('/admin'); break;
+            case 'docente': navigate('/docente'); break;
+            case 'alumno': navigate('/alumno'); break;
+            case 'padre': navigate('/padre'); break;
+            default: navigate('/');
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         const result = await login(username, password);
-        if (result.success) {
-            navigate('/');
-        } else {
+        if (!result.success) {
             setError(result.message);
         }
     };
@@ -26,36 +57,55 @@ const LoginPage = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'linear-gradient(120deg, var(--blue) 0%, var(--violet) 100%)',
-            padding: '24px'
+            background: 'linear-gradient(135deg, #1a5fa8 0%, #7c3aed 100%)',
+            padding: '24px',
+            position: 'relative',
+            overflow: 'hidden'
         }}>
+            {/* Decoración de fondo */}
+            <div style={{ position: 'absolute', top: '-10%', left: '-5%', width: '40%', height: '40%', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }}></div>
+            <div style={{ position: 'absolute', bottom: '-10%', right: '-5%', width: '30%', height: '30%', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }}></div>
+
             <div style={{
                 background: 'var(--white)',
                 padding: '40px',
-                borderRadius: 'var(--radius)',
-                boxShadow: 'var(--shadow)',
-                maxWidth: '400px',
-                width: '100%'
+                borderRadius: '24px',
+                boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
+                maxWidth: '450px',
+                width: '100%',
+                position: 'relative',
+                zIndex: 1
             }}>
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                    <div style={{ 
+                        width: '64px', height: '64px', background: 'var(--bg)', borderRadius: '16px', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem',
+                        margin: '0 auto 16px'
+                    }}>🎓</div>
                     <h2 style={{
                         fontFamily: 'Playfair Display, serif',
                         color: 'var(--blue)',
-                        fontSize: '2rem'
-                    }}>Bienvenido</h2>
-                    <p style={{ color: 'var(--text-sm)', marginTop: '8px' }}>Ingresá a la plataforma institucional</p>
+                        fontSize: '2.2rem',
+                        marginBottom: '8px'
+                    }}>
+                        {portal.title}
+                    </h2>
+                    <p style={{ color: 'var(--text-sm)', fontWeight: 600 }}>
+                        {portal.sub}
+                    </p>
                 </div>
 
                 {error && (
                     <div style={{
                         background: '#fee2e2',
                         color: '#dc2626',
-                        padding: '12px',
-                        borderRadius: '8px',
-                        marginBottom: '20px',
+                        padding: '14px',
+                        borderRadius: '12px',
+                        marginBottom: '24px',
                         fontSize: '0.9rem',
                         fontWeight: '700',
-                        textAlign: 'center'
+                        textAlign: 'center',
+                        border: '1px solid #fecaca'
                     }}>
                         {error}
                     </div>
@@ -63,46 +113,55 @@ const LoginPage = () => {
 
                 <form onSubmit={handleSubmit}>
                     <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '700', fontSize: '0.9rem' }}>Usuario</label>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '800', fontSize: '0.85rem', color: 'var(--text-sm)', textTransform: 'uppercase' }}>Usuario</label>
                         <input
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             style={{
                                 width: '100%',
-                                padding: '12px 16px',
-                                borderRadius: '8px',
-                                border: '1px solid #e2e8f0',
-                                fontSize: '1rem'
+                                padding: '14px 18px',
+                                borderRadius: '12px',
+                                border: '2px solid #f1f5f9',
+                                fontSize: '1rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s'
                             }}
-                            placeholder="Tu usuario"
+                            placeholder="Tu nombre de usuario"
                             required
                         />
                     </div>
                     <div style={{ marginBottom: '32px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '700', fontSize: '0.9rem' }}>Contraseña</label>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '800', fontSize: '0.85rem', color: 'var(--text-sm)', textTransform: 'uppercase' }}>Contraseña</label>
                         <input
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             style={{
                                 width: '100%',
-                                padding: '12px 16px',
-                                borderRadius: '8px',
-                                border: '1px solid #e2e8f0',
-                                fontSize: '1rem'
+                                padding: '14px 18px',
+                                borderRadius: '12px',
+                                border: '2px solid #f1f5f9',
+                                fontSize: '1rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s'
                             }}
-                            placeholder="********"
+                            placeholder="••••••••"
                             required
                         />
                     </div>
-                    <button type="submit" className="btn btn-violet" style={{ width: '100%', justifyContent: 'center', padding: '14px' }}>
-                        Ingresar →
+                    <button type="submit" className="btn btn-violet" style={{ 
+                        width: '100%', justifyContent: 'center', padding: '16px', fontSize: '1.1rem',
+                        boxShadow: '0 10px 20px rgba(124,58,237,0.3)'
+                    }}>
+                        Iniciar Sesión →
                     </button>
                 </form>
 
-                <div style={{ marginTop: '24px', textAlign: 'center' }}>
-                    <a href="/" style={{ color: 'var(--blue)', fontWeight: '700', fontSize: '0.85rem' }}>← Volver al inicio</a>
+                <div style={{ marginTop: '32px', textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '24px' }}>
+                    <a href="/" style={{ color: 'var(--blue)', fontWeight: '800', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        <span>←</span> Volver al inicio
+                    </a>
                 </div>
             </div>
         </div>

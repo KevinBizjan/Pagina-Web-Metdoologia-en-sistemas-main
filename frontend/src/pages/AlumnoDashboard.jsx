@@ -19,17 +19,17 @@ const AlumnoDashboard = () => {
         <DashboardLayout title="Panel del Alumno">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
                 {/* Mis Materias y Notas */}
-                <div style={cardStyle}>
+                <div className="dashboard-card" style={cardStyle}>
                     <h3 style={cardTitleStyle}>📚 Mis Materias</h3>
                     <div style={{ marginTop: '16px' }}>
                         {materias.map((m, i) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: i < materias.length -1 ? '1px solid #f1f5f9' : 'none' }}>
                                 <div>
-                                    <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>{m.nombre}</p>
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-sm)' }}>{m.docente}</p>
+                                    <p style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text)' }}>{m.nombre}</p>
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-sm)' }}>{m.docente}</p>
                                 </div>
                                 <span style={{ 
-                                    background: 'var(--blue)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 800, alignSelf: 'center'
+                                    background: 'var(--blue)', color: 'white', padding: '4px 12px', borderRadius: '50px', fontSize: '0.85rem', fontWeight: 800, alignSelf: 'center'
                                 }}>{m.nota}</span>
                             </div>
                         ))}
@@ -37,31 +37,31 @@ const AlumnoDashboard = () => {
                 </div>
 
                 {/* Horarios */}
-                <div style={cardStyle}>
+                <div className="dashboard-card" style={cardStyle}>
                     <h3 style={cardTitleStyle}>⏰ Horarios de Clase</h3>
                     <div style={{ marginTop: '16px' }}>
                         {horarios.map((h, i) => (
                             <div key={i} style={{ padding: '12px 0', borderBottom: i < horarios.length -1 ? '1px solid #f1f5f9' : 'none' }}>
-                                <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>{h.dia}</p>
-                                <p style={{ fontSize: '0.85rem', color: 'var(--blue)' }}>{h.materia} <span style={{ color: 'var(--text-sm)' }}>({h.hora})</span></p>
+                                <p style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text)' }}>{h.dia}</p>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--blue)', fontWeight: 600 }}>{h.materia} <span style={{ color: 'var(--text-sm)', fontWeight: 400 }}>({h.hora})</span></p>
                             </div>
                         ))}
                     </div>
                 </div>
 
                 {/* Comunicados */}
-                <div style={{ ...cardStyle, gridColumn: '1 / -1' }}>
+                <div className="dashboard-card" style={{ ...cardStyle, gridColumn: '1 / -1' }}>
                     <h3 style={cardTitleStyle}>📢 Comunicados Recientes</h3>
                     <div style={{ marginTop: '16px' }}>
                         <div style={comunicadoStyle}>
                             <p style={{ fontWeight: 800, color: 'var(--orange)' }}>Importante: Entrega de Proyectos</p>
-                            <p style={{ fontSize: '0.9rem', marginTop: '4px' }}>Recuerden que la fecha límite para la entrega del proyecto de ciencias es el próximo viernes 15 de mayo.</p>
-                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginTop: '8px' }}>Hace 2 horas</span>
+                            <p style={{ fontSize: '0.9rem', marginTop: '4px', lineHeight: '1.5' }}>Recuerden que la fecha límite para la entrega del proyecto de ciencias es el próximo viernes 15 de mayo.</p>
+                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginTop: '8px', fontWeight: 700 }}>Publicado hace 2 horas</span>
                         </div>
                         <div style={comunicadoStyle}>
                             <p style={{ fontWeight: 800, color: 'var(--green)' }}>Taller de Robótica</p>
-                            <p style={{ fontSize: '0.9rem', marginTop: '4px' }}>Se abren las inscripciones para el nuevo taller de robótica avanzado. Cupos limitados.</p>
-                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginTop: '8px' }}>Ayer</span>
+                            <p style={{ fontSize: '0.9rem', marginTop: '4px', lineHeight: '1.5' }}>Se abren las inscripciones para el nuevo taller de robótica avanzado. Cupos limitados para el turno tarde.</p>
+                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginTop: '8px', fontWeight: 700 }}>Publicado ayer</span>
                         </div>
                     </div>
                 </div>
