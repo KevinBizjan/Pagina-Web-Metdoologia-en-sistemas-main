@@ -10,7 +10,7 @@ const Institucion = () => {
         <div className="inst-cards">
           <div className="inst-card fade-in">
             <div className="inst-card-img">
-              <img src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&q=80" alt="Niveles educativos" />
+              <img src="https://plus.unsplash.com/premium_photo-1663050763436-818382a24bb8?q=80&w=600&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Niveles educativos" />
             </div>
             <div className="inst-card-body">
               <h3>📚 Nivel Inicial · Primario · Secundario</h3>
