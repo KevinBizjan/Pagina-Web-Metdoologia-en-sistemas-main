@@ -1,8 +1,9 @@
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-exports.verifyToken = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1];
+const verifyToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
         return res.status(403).json({ message: 'Token no proporcionado' });
@@ -17,7 +18,7 @@ exports.verifyToken = (req, res, next) => {
     });
 };
 
-exports.checkRol = (roles) => {
+const checkRol = (roles) => {
     return (req, res, next) => {
         if (!roles.includes(req.user.rol)) {
             return res.status(403).json({ message: 'Acceso denegado: permisos insuficientes' });
@@ -25,3 +26,12 @@ exports.checkRol = (roles) => {
         next();
     };
 };
+
+// Middleware principal que combina verificación de token y chequeo de rol
+const authMiddleware = (roles) => [verifyToken, checkRol(roles)];
+
+// Exportaciones
+authMiddleware.verifyToken = verifyToken;
+authMiddleware.checkRol = checkRol;
+
+module.exports = authMiddleware;

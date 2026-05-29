@@ -1,39 +1,116 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 
 const PadreDashboard = () => {
+    const [showMenu, setShowMenu] = useState(false);
+    const [showReporte, setShowReporte] = useState(false);
+    const [notificaciones, setNotificaciones] = useState([]);
+
+    useEffect(() => {
+        fetchNotificaciones();
+    }, []);
+
+    const fetchNotificaciones = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:3000/api/comunicacion/notificaciones', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (response.ok) setNotificaciones(data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const [avisosLeidos, setAvisosLeidos] = useState([]);
+
+    const markAsRead = (id) => {
+        if (!avisosLeidos.includes(id)) {
+            setAvisosLeidos([...avisosLeidos, id]);
+        }
+    };
+
     const hijos = [
-        { nombre: 'Pepe Alumno', grado: '4° Grado B', asistencia: '95%', cuota: 'Al día' }
+        { nombre: 'Pepe Alumno', grado: '4° Grado B', asistencia: '95%', cuota: 'Al día', promedio: 8.5, faltas: 2 }
     ];
 
-    const avisos = [
-        { fecha: '10/05', titulo: 'Reunión de Padres', desc: 'Próximo jueves 18:00hs en el salón de actos.' },
-        { fecha: '08/05', titulo: 'Feria del Libro', desc: 'Invitamos a las familias a participar de la feria anual.' }
+    const menuSemanal = [
+        { dia: 'Lunes', plato: 'Tallarines con salsa bolognesa', postre: 'Fruta de estación' },
+        { dia: 'Martes', plato: 'Pollo al horno con puré', postre: 'Gelatina' },
+        { dia: 'Miércoles', plato: 'Milanesa de carne con ensalada', postre: 'Flan con dulce' },
+        { dia: 'Jueves', plato: 'Arroz con pollo y vegetales', postre: 'Yogur' },
+        { dia: 'Viernes', plato: 'Pizza artesanal y empanadas', postre: 'Helado' },
     ];
 
     return (
         <DashboardLayout title="Panel para Padres">
+            {/* Modal Menú Semanal */}
+            {showMenu && (
+                <div style={modalOverlay}>
+                    <div style={modalContent}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                            <h2 style={{ color: 'var(--blue)' }}>🍎 Menú Semanal Comedor</h2>
+                            <button onClick={() => setShowMenu(false)} style={closeBtn}>✕</button>
+                        </div>
+                        {menuSemanal.map(m => (
+                            <div key={m.dia} style={{ padding: '12px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between' }}>
+                                <div>
+                                    <strong style={{ color: 'var(--orange)' }}>{m.dia}</strong>: {m.plato}
+                                </div>
+                                <em style={{ fontSize: '0.8rem', color: '#64748b' }}>Postre: {m.postre}</em>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Reporte Completo */}
+            {showReporte && (
+                <div style={modalOverlay}>
+                    <div style={modalContent}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                            <h2 style={{ color: 'var(--blue)' }}>📊 Reporte de Rendimiento</h2>
+                            <button onClick={() => setShowReporte(false)} style={closeBtn}>✕</button>
+                        </div>
+                        <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px' }}>
+                            <h3 style={{ fontSize: '1rem', marginBottom: '16px' }}>Calificaciones - 1° Trimestre</h3>
+                            <div style={{ display: 'grid', gap: '10px' }}>
+                                <div style={notaRow}><span>Matemática</span> <strong>8.50</strong></div>
+                                <div style={notaRow}><span>Lengua y Literatura</span> <strong>9.00</strong></div>
+                                <div style={notaRow}><span>Ciencias Sociales</span> <strong>7.50</strong></div>
+                                <div style={notaRow}><span>Ciencias Naturales</span> <strong>8.00</strong></div>
+                            </div>
+                            <hr style={{ margin: '20px 0', border: '0', borderTop: '1px solid #e2e8f0' }} />
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <strong>Promedio Parcial:</strong>
+                                <strong style={{ color: 'var(--blue)', fontSize: '1.2rem' }}>8.25</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* Resumen Rápido */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' }}>
                 <div className="dashboard-card" style={{ ...cardStyle, textAlign: 'center' }}>
                     <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>📚</div>
                     <span style={labelStyle}>Promedio Gral</span>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--blue)' }}>8.5</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--blue)' }}>{hijos[0].promedio}</div>
                 </div>
                 <div className="dashboard-card" style={{ ...cardStyle, textAlign: 'center' }}>
                     <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>✅</div>
                     <span style={labelStyle}>Asistencia</span>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--green)' }}>95%</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--green)' }}>{hijos[0].asistencia}</div>
                 </div>
                 <div className="dashboard-card" style={{ ...cardStyle, textAlign: 'center' }}>
                     <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>💰</div>
                     <span style={labelStyle}>Estado Cuota</span>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--blue)', marginTop: '8px' }}>AL DÍA</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--blue)', marginTop: '8px' }}>{hijos[0].cuota.toUpperCase()}</div>
                 </div>
                 <div className="dashboard-card" style={{ ...cardStyle, textAlign: 'center' }}>
                     <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>📅</div>
                     <span style={labelStyle}>Faltas</span>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--orange)' }}>2</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--orange)' }}>{hijos[0].faltas}</div>
                 </div>
             </div>
 
@@ -58,22 +135,41 @@ const PadreDashboard = () => {
                             </div>
                         </div>
                     ))}
-                    <button className="btn btn-violet" style={{ width: '100%', marginTop: '16px', fontSize: '0.85rem' }}>Ver Reporte Completo</button>
+                    <button onClick={() => setShowReporte(true)} className="btn btn-violet" style={{ width: '100%', marginTop: '16px', fontSize: '0.85rem' }}>Ver Reporte Completo</button>
                 </div>
 
                 {/* Avisos Institucionales */}
                 <div style={cardStyle}>
                     <h3 style={cardTitleStyle}>🔔 Avisos y Citaciones</h3>
                     <div style={{ marginTop: '16px' }}>
-                        {avisos.map((a, i) => (
-                            <div key={i} style={avisoStyle}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <p style={{ fontWeight: 800, fontSize: '0.95rem' }}>{a.titulo}</p>
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-sm)' }}>{a.fecha}</span>
+                        {notificaciones.length === 0 ? (
+                            <p style={{ fontSize: '0.85rem', color: '#64748b' }}>No hay avisos nuevos.</p>
+                        ) : (
+                            notificaciones.map((a, i) => (
+                                <div 
+                                    key={i} 
+                                    style={{ 
+                                        ...avisoStyle, 
+                                        opacity: avisosLeidos.includes(a.id) ? 0.7 : 1,
+                                        borderLeftColor: avisosLeidos.includes(a.id) ? '#cbd5e1' : 'var(--orange)'
+                                    }}
+                                    onMouseEnter={() => markAsRead(a.id)}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <p style={{ fontWeight: 800, fontSize: '0.95rem' }}>
+                                            {a.titulo}
+                                            {!avisosLeidos.includes(a.id) && (
+                                                <span style={{ marginLeft: '8px', fontSize: '0.6rem', background: 'var(--orange)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>NUEVO</span>
+                                            )}
+                                        </p>
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-sm)' }}>
+                                            {new Date(a.fecha_envio).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <p style={{ fontSize: '0.85rem', marginTop: '4px', color: 'var(--text-sm)' }}>{a.mensaje}</p>
                                 </div>
-                                <p style={{ fontSize: '0.85rem', marginTop: '4px', color: 'var(--text-sm)' }}>{a.desc}</p>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
 
@@ -113,13 +209,18 @@ const PadreDashboard = () => {
                             <span style={labelStyle}>Comedor Escolar</span>
                             <span style={{ ...valueStyle, color: 'var(--blue)' }}>Activo (Menú General)</span>
                         </div>
-                        <button className="btn btn-green" style={{ width: '100%', marginTop: '16px', fontSize: '0.85rem' }}>Ver Menú Semanal</button>
+                        <button onClick={() => setShowMenu(true)} className="btn btn-green" style={{ width: '100%', marginTop: '16px', fontSize: '0.85rem' }}>Ver Menú Semanal</button>
                     </div>
                 </div>
             </div>
         </DashboardLayout>
     );
 };
+
+const modalOverlay = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
+const modalContent = { background: 'white', padding: '32px', borderRadius: '16px', width: '90%', maxWidth: '500px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' };
+const closeBtn = { background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' };
+const notaRow = { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' };
 
 const cardStyle = { background: 'var(--white)', padding: '24px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' };
 const cardTitleStyle = { fontSize: '1.1rem', color: 'var(--blue)', borderBottom: '2px solid #f1f5f9', paddingBottom: '12px' };

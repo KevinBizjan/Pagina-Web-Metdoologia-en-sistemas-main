@@ -89,6 +89,47 @@ exports.createAlumno = (req, res) => {
     }
 };
 
+exports.updateAlumno = (req, res) => {
+    const { id } = req.params;
+    const { nombre, apellido, dni, fecha_nacimiento, curso_id } = req.body;
+    
+    const query = `
+        UPDATE alumnos 
+        SET nombre = ?, apellido = ?, dni = ?, fecha_nacimiento = ?, curso_id = ? 
+        WHERE id = ?
+    `;
+    db.run(query, [nombre, apellido, dni, fecha_nacimiento, curso_id, id], function(err) {
+        if (err) return res.status(500).json({ message: err.message });
+        if (this.changes === 0) return res.status(404).json({ message: "Alumno no encontrado" });
+        res.json({ message: "Alumno actualizado correctamente" });
+    });
+};
+
+exports.deleteAlumno = (req, res) => {
+    const { id } = req.params;
+    db.run("DELETE FROM alumnos WHERE id = ?", [id], function(err) {
+        if (err) return res.status(500).json({ message: err.message });
+        if (this.changes === 0) return res.status(404).json({ message: "Alumno no encontrado" });
+        res.json({ message: "Alumno eliminado correctamente" });
+    });
+};
+
+exports.deleteAula = (req, res) => {
+    const { id } = req.params;
+    db.run("DELETE FROM aulas WHERE id = ?", [id], function(err) {
+        if (err) return res.status(500).json({ message: err.message });
+        res.json({ message: "Aula eliminada" });
+    });
+};
+
+exports.deleteCurso = (req, res) => {
+    const { id } = req.params;
+    db.run("DELETE FROM cursos WHERE id = ?", [id], function(err) {
+        if (err) return res.status(500).json({ message: err.message });
+        res.json({ message: "Curso eliminado" });
+    });
+};
+
 // --- ASISTENCIA & CALIFICACIONES (Docente) ---
 exports.registrarAsistencia = (req, res) => {
     const { alumno_id, fecha, estado } = req.body;

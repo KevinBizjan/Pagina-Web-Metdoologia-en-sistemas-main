@@ -6,9 +6,12 @@ const authMiddleware = require('../middlewares/auth.middleware');
 // Rutas protegidas
 router.post('/comedor/asistencia', authMiddleware(['admin', 'docente']), serviciosController.registrarAsistenciaComedor);
 
-router.get('/transporte/rutas', authMiddleware(['admin']), serviciosController.getRutas);
+router.get('/transporte/rutas', authMiddleware(['admin']), serviciosController.getRutasTransporte);
+router.post('/transporte/rutas', authMiddleware(['admin']), serviciosController.createRutaTransporte);
+router.delete('/transporte/rutas/:id', authMiddleware(['admin']), serviciosController.deleteRutaTransporte);
 router.post('/transporte/asignar', authMiddleware(['admin']), serviciosController.asignarAlumnoTransporte);
 
+router.get('/instalaciones', authMiddleware(['admin', 'docente']), serviciosController.getInstalaciones);
 router.post('/instalaciones/reservar', authMiddleware(['admin', 'docente']), serviciosController.reservarInstalacion);
 
 router.post('/enfermeria/incidencia', authMiddleware(['admin', 'docente']), serviciosController.registrarIncidenciaEnfermeria);

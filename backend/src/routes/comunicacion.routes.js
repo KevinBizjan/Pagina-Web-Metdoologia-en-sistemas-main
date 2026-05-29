@@ -6,7 +6,7 @@ const authMiddleware = require('../middlewares/auth.middleware');
 
 // Rutas protegidas
 router.get('/notificaciones', authMiddleware(['admin', 'docente', 'alumno', 'padre']), comunicacionController.getNotificaciones);
-router.post('/notificaciones', authMiddleware(['admin']), comunicacionController.crearNotificacion);
+router.post('/notificaciones', authMiddleware(['admin', 'docente']), comunicacionController.crearNotificacion);
 
 router.get('/actividades-extra', comunicacionController.getActividadesExtra);
 router.post('/actividades-extra/inscribir', authMiddleware(['alumno', 'padre']), comunicacionController.inscribirActividad);

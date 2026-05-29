@@ -17,9 +17,22 @@ exports.createPersonal = (req, res) => {
     });
 };
 
+exports.deletePersonal = (req, res) => {
+    const { id } = req.params;
+    db.run("DELETE FROM personal WHERE id = ?", [id], function(err) {
+        if (err) return res.status(500).json({ message: err.message });
+        res.json({ message: "Personal eliminado" });
+    });
+};
+
 // --- CUOTAS CONFIG ---
 exports.getCuotasConfig = (req, res) => {
-    db.all("SELECT cuotas_config.*, niveles.nombre as nivel_nombre FROM cuotas_config JOIN niveles ON cuotas_config.nivel_id = niveles.id", [], (err, rows) => {
+    const query = `
+        SELECT cc.*, n.nombre as nivel_nombre 
+        FROM cuotas_config cc
+        JOIN niveles n ON cc.nivel_id = n.id
+    `;
+    db.all(query, [], (err, rows) => {
         if (err) return res.status(500).json({ message: err.message });
         res.json(rows);
     });
@@ -33,6 +46,14 @@ exports.createCuotaConfig = (req, res) => {
     db.run("INSERT INTO cuotas_config (nivel_id, monto, mes, anio, vencimiento) VALUES (?, ?, ?, ?, ?)", [nivel_id, montoNum, mes, anio, vencimiento], function(err) {
         if (err) return res.status(500).json({ message: err.message });
         res.status(201).json({ id: this.lastID });
+    });
+};
+
+exports.deleteCuotaConfig = (req, res) => {
+    const { id } = req.params;
+    db.run("DELETE FROM cuotas_config WHERE id = ?", [id], function(err) {
+        if (err) return res.status(500).json({ message: err.message });
+        res.json({ message: "Configuración de cuota eliminada" });
     });
 };
 

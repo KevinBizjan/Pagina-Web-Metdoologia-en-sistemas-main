@@ -1,4 +1,3 @@
-# Instrucciones para Gemini
 
 NO generar archivos innecesarios.
 
