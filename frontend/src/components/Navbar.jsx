@@ -26,9 +26,11 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (window.confirm('¿Estás seguro de que deseas cerrar la sesión?')) {
       logout();
+      setIsOpen(false);
       navigate('/');
     }
   };

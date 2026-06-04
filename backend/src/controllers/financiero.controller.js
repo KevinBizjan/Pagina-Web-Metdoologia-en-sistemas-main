@@ -99,3 +99,18 @@ exports.getSaldoAlumno = (req, res) => {
         res.json(row || { saldo_pendiente: 0 });
     });
 };
+
+exports.getDeudores = (req, res) => {
+    const query = `
+        SELECT a.id, a.nombre, a.apellido, a.dni,
+               COALESCE(s.saldo_pendiente, 0) as saldo_pendiente
+        FROM alumnos a
+        LEFT JOIN saldos_alumnos s ON s.alumno_id = a.id
+        WHERE COALESCE(s.saldo_pendiente, 0) > 0
+        ORDER BY s.saldo_pendiente DESC
+    `;
+    db.all(query, [], (err, rows) => {
+        if (err) return res.status(500).json({ message: err.message });
+        res.json(rows);
+    });
+};

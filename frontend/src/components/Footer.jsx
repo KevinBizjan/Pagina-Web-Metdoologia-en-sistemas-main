@@ -23,13 +23,13 @@ const Footer = () => {
         <div className="footer-col">
           <h4>Enlaces Rápidos</h4>
           <ul>
-            <li><a href="#">• Inicio</a></li>
+            <li><a href="/">• Inicio</a></li>
             <li><a href="#institucion">• Nosotros</a></li>
             <li><a href="#niveles">• Niveles Educativos</a></li>
             <li><a href="#servicios">• Servicios</a></li>
             <li><a href="#noticias">• Actividades</a></li>
             <li><a href="#idiomas">• Idiomas</a></li>
-            <li><a href="#inscripciones">• Inscripciones</a></li>
+            <li><a href="#preinscripcion">• Inscripciones</a></li>
           </ul>
         </div>
 

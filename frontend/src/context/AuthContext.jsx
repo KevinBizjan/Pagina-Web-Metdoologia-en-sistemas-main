@@ -44,8 +44,22 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('user');
     };
 
+    // Wrapper de fetch que adjunta el JWT y cierra la sesión automáticamente si el token expiró.
+    const apiFetch = async (url, options = {}) => {
+        const token = localStorage.getItem('token');
+        const headers = {
+            ...(options.headers || {}),
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        };
+        const response = await fetch(url, { ...options, headers });
+        if (response.status === 401) {
+            logout();
+        }
+        return response;
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, loading, apiFetch }}>
             {children}
         </AuthContext.Provider>
     );

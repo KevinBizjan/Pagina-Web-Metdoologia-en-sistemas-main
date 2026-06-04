@@ -14,5 +14,6 @@ router.delete('/cuotas-config/:id', authMiddleware(['admin']), financieroControl
 
 router.post('/pagos', authMiddleware(['admin']), financieroController.registrarPago);
 router.get('/saldo/:alumno_id', authMiddleware(['admin', 'padre']), financieroController.getSaldoAlumno);
+router.get('/deudores', authMiddleware(['admin']), financieroController.getDeudores);
 
 module.exports = router;

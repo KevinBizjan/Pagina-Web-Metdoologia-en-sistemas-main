@@ -26,8 +26,4 @@ app.get('/', (req, res) => {
     res.json({ message: 'API Educar para Transformar - Activa' });
 });
 
-// Importar rutas futuras aquí
-// app.use('/api/auth', require('./routes/auth.routes'));
-// app.use('/api/preinscripcion', require('./routes/preinscripcion.routes'));
-
 module.exports = app;

@@ -10,24 +10,116 @@ const AdminDashboard = () => {
     const [aulas, setAulas] = useState([]);
     const [showAlumnoForm, setShowAlumnoForm] = useState(false);
     const [loading, setLoading] = useState(true);
-    const { logout } = useAuth();
+    const { apiFetch } = useAuth();
 
     const [editingAlumno, setEditingAlumno] = useState(null);
     const [personal, setPersonal] = useState([]);
     const [niveles, setNiveles] = useState([]);
+    const [padres, setPadres] = useState([]);
 
     const [rutasTransporte, setRutasTransporte] = useState([]);
     const [instalaciones, setInstalaciones] = useState([]);
     const [cuotasConfig, setCuotasConfig] = useState([]);
+    const [reportesStats, setReportesStats] = useState(null);
 
     useEffect(() => {
         if (activeTab === 'preinscripciones') fetchPreinscripciones();
-        if (activeTab === 'alumnos') { fetchAlumnos(); fetchCursosYAulas(); }
+        if (activeTab === 'alumnos') { fetchAlumnos(); fetchCursosYAulas(); fetchPadres(); }
         if (activeTab === 'cursos') { fetchCursosYAulas(); fetchNiveles(); }
         if (activeTab === 'personal') fetchPersonal();
-        if (activeTab === 'finanzas') { fetchFinanzas(); fetchNiveles(); }
+        if (activeTab === 'finanzas') { fetchFinanzas(); fetchNiveles(); fetchAlumnos(); }
         if (activeTab === 'servicios') fetchServicios();
+        if (activeTab === 'reportes') fetchReportesStats();
     }, [activeTab]);
+
+    const fetchPadres = async () => {
+        try {
+            const response = await apiFetch('http://localhost:3000/api/auth/padres');
+            if (response.ok) setPadres(await response.json());
+        } catch (error) { console.error(error); }
+    };
+
+    const fetchReportesStats = async () => {
+        try {
+            const response = await apiFetch('http://localhost:3000/api/comunicacion/reportes/stats');
+            if (response.ok) setReportesStats(await response.json());
+        } catch (error) { console.error(error); }
+    };
+
+    const exportCSV = (filename, headers, rows) => {
+        const escape = (val) => {
+            if (val === null || val === undefined) return '';
+            const s = String(val).replace(/"/g, '""');
+            return /[",\n]/.test(s) ? `"${s}"` : s;
+        };
+        const csv = [headers.join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
+        const blob = new Blob(["﻿" + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
+    const exportLegajos = async () => {
+        let data = alumnos;
+        if (!data || data.length === 0) {
+            const r = await apiFetch('http://localhost:3000/api/academico/alumnos');
+            if (r.ok) data = await r.json();
+        }
+        if (!data || data.length === 0) return alert('No hay alumnos para exportar.');
+        exportCSV(
+            `legajos_alumnos_${new Date().toISOString().slice(0,10)}.csv`,
+            ['ID', 'Apellido', 'Nombre', 'DNI', 'Fecha Nac.', 'Nivel', 'División'],
+            data.map(a => [a.id, a.apellido, a.nombre, a.dni, a.fecha_nacimiento, a.nivel_nombre || '', a.division || ''])
+        );
+    };
+
+    const exportPersonal = async () => {
+        let data = personal;
+        if (!data || data.length === 0) {
+            const r = await apiFetch('http://localhost:3000/api/financiero/personal');
+            if (r.ok) data = await r.json();
+        }
+        if (!data || data.length === 0) return alert('No hay personal para exportar.');
+        exportCSV(
+            `nomina_personal_${new Date().toISOString().slice(0,10)}.csv`,
+            ['ID', 'Apellido', 'Nombre', 'DNI', 'Tipo', 'Email', 'Fecha Alta'],
+            data.map(p => [p.id, p.apellido, p.nombre, p.dni, p.tipo, p.email, p.fecha_alta])
+        );
+    };
+
+    const exportDeudores = async () => {
+        try {
+            const r = await apiFetch('http://localhost:3000/api/financiero/deudores');
+            if (!r.ok) return alert('No se pudo obtener el listado de deudores.');
+            const data = await r.json();
+            if (data.length === 0) return alert('No hay deudores registrados.');
+            exportCSV(
+                `deudores_${new Date().toISOString().slice(0,10)}.csv`,
+                ['ID', 'Apellido', 'Nombre', 'DNI', 'Saldo Pendiente'],
+                data.map(d => [d.id, d.apellido, d.nombre, d.dni, d.saldo_pendiente])
+            );
+        } catch (e) { console.error(e); alert('Error al exportar.'); }
+    };
+
+    const exportPlanillaAsistencia = async () => {
+        let data = alumnos;
+        if (!data || data.length === 0) {
+            const r = await apiFetch('http://localhost:3000/api/academico/alumnos');
+            if (r.ok) data = await r.json();
+        }
+        if (!data || data.length === 0) return alert('No hay alumnos para generar la planilla.');
+        const hoy = new Date().toISOString().slice(0,10);
+        exportCSV(
+            `planilla_asistencia_${hoy}.csv`,
+            ['Fecha', 'ID Alumno', 'Apellido', 'Nombre', 'DNI', 'Estado'],
+            data.map(a => [hoy, a.id, a.apellido, a.nombre, a.dni, ''])
+        );
+    };
 
     const fetchFinanzas = async () => {
         try {
@@ -220,7 +312,8 @@ const AdminDashboard = () => {
             apellido: form.apellido.value,
             dni: form.dni.value,
             fecha_nacimiento: form.fecha_nacimiento.value,
-            curso_id: form.curso_id?.value || null
+            curso_id: form.curso_id?.value || null,
+            tutor_id: form.tutor_id?.value || null
         };
 
         try {
@@ -348,23 +441,65 @@ const AdminDashboard = () => {
         const cuotaData = {
             nivel_id: form.nivel_id.value,
             monto: form.monto.value,
-            mes: new Date().getMonth() + 1,
-            anio: new Date().getFullYear(),
+            mes: parseInt(form.mes.value),
+            anio: parseInt(form.anio.value),
             vencimiento: form.vencimiento.value
         };
 
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/financiero/cuotas-config', {
+            const response = await apiFetch('http://localhost:3000/api/financiero/cuotas-config', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(cuotaData)
             });
-            if (response.ok) fetchFinanzas();
+            if (response.ok) { form.reset(); fetchFinanzas(); }
+            else { const d = await response.json().catch(() => ({})); alert(d.message || 'Error al guardar la cuota'); }
         } catch (error) { console.error(error); }
+    };
+
+    const handlePagoSubmit = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const pagoData = {
+            alumno_id: parseInt(form.alumno_id.value),
+            cuota_id: form.cuota_id.value ? parseInt(form.cuota_id.value) : null,
+            monto_pagado: parseFloat(form.monto_pagado.value),
+            metodo_pago: form.metodo_pago.value
+        };
+        if (!pagoData.alumno_id || isNaN(pagoData.monto_pagado) || pagoData.monto_pagado <= 0) {
+            return alert('Complete alumno y monto válido (> 0).');
+        }
+        try {
+            const response = await apiFetch('http://localhost:3000/api/financiero/pagos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(pagoData)
+            });
+            if (response.ok) { form.reset(); alert('Pago registrado correctamente.'); }
+            else { const d = await response.json().catch(() => ({})); alert(d.message || 'Error al registrar el pago'); }
+        } catch (error) { console.error(error); alert('Error de conexión'); }
+    };
+
+    const handleReservaSubmit = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const data = {
+            instalacion_id: parseInt(form.instalacion_id.value),
+            fecha: form.fecha.value,
+            hora_inicio: form.hora_inicio.value,
+            hora_fin: form.hora_fin.value,
+            motivo: form.motivo.value,
+            reservado_por: JSON.parse(localStorage.getItem('user') || '{}').id || null
+        };
+        try {
+            const response = await apiFetch('http://localhost:3000/api/servicios/instalaciones/reservar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (response.ok) { form.reset(); alert('Reserva confirmada.'); }
+            else { const d = await response.json().catch(() => ({})); alert(d.message || 'Error al reservar'); }
+        } catch (error) { console.error(error); alert('Error de conexión'); }
     };
 
     const handleRutaSubmit = async (e) => {
@@ -573,6 +708,12 @@ const AdminDashboard = () => {
                                     <option key={c.id} value={c.id}>{c.nivel_nombre} - {c.division}</option>
                                 ))}
                             </select>
+                            <select style={inputStyle} name="tutor_id" defaultValue={editingAlumno?.tutor_id || ''}>
+                                <option value="">Vincular Tutor (Opcional)</option>
+                                {padres.map(p => (
+                                    <option key={p.id} value={p.id}>{p.nombre} ({p.username})</option>
+                                ))}
+                            </select>
                             <button type="submit" className="btn btn-violet" style={{ height: '45px' }}>
                                 {editingAlumno ? 'Guardar Cambios' : 'Registrar Legajo'}
                             </button>
@@ -746,9 +887,10 @@ const AdminDashboard = () => {
                             <input type="text" name="dni" placeholder="DNI" required style={inputStyle} />
                             <input type="email" name="email" placeholder="Email" required style={inputStyle} />
                             <select name="tipo" required style={inputStyle}>
-                                <option value="docente">Docente</option>
-                                <option value="administrativo">Administrativo</option>
-                                <option value="maestranza">Maestranza</option>
+                                <option value="Docente">Docente</option>
+                                <option value="Administrativo">Administrativo</option>
+                                <option value="Maestranza">Maestranza</option>
+                                <option value="Directivo">Directivo</option>
                             </select>
                             <button type="submit" className="btn btn-violet">Registrar Personal</button>
                         </form>
@@ -809,12 +951,48 @@ const AdminDashboard = () => {
                                 <label style={labelStyle}>Monto Mensual ($)</label>
                                 <input type="number" name="monto" step="0.01" placeholder="Ej: 45000.00" required style={inputStyle} />
                             </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div>
+                                    <label style={labelStyle}>Mes</label>
+                                    <select name="mes" required style={inputStyle} defaultValue={new Date().getMonth() + 1}>
+                                        {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'].map((m, i) => (
+                                            <option key={i+1} value={i+1}>{m}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Año</label>
+                                    <input type="number" name="anio" min="2024" max="2099" required style={inputStyle} defaultValue={new Date().getFullYear()} />
+                                </div>
+                            </div>
                             <div>
                                 <label style={labelStyle}>Vencimiento</label>
                                 <input type="date" name="vencimiento" required style={inputStyle} />
                             </div>
-                            <button type="submit" className="btn btn-hero-orange" style={{ padding: '14px' }}>Guardar Configuración</button>
+                            <button type="submit" className="btn btn-hero-orange" style={{ padding: '14px', color: 'white' }}>Guardar Configuración</button>
                         </form>
+
+                        <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #e2e8f0' }}>
+                            <h3 style={{ fontSize: '1.05rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '16px' }}>💵 Registrar Pago</h3>
+                            <form onSubmit={handlePagoSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <select name="alumno_id" required style={inputStyle}>
+                                    <option value="">Seleccionar Alumno</option>
+                                    {alumnos.map(a => <option key={a.id} value={a.id}>{a.apellido}, {a.nombre} (DNI {a.dni})</option>)}
+                                </select>
+                                <select name="cuota_id" style={inputStyle}>
+                                    <option value="">Cuota (opcional)</option>
+                                    {cuotasConfig.map(c => <option key={c.id} value={c.id}>{c.nivel_nombre} · {c.mes}/{c.anio} · ${c.monto}</option>)}
+                                </select>
+                                <input type="number" step="0.01" name="monto_pagado" placeholder="Monto pagado" required style={inputStyle} />
+                                <select name="metodo_pago" required style={inputStyle} defaultValue="Efectivo">
+                                    <option value="Efectivo">Efectivo</option>
+                                    <option value="Transferencia">Transferencia</option>
+                                    <option value="Tarjeta">Tarjeta</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                                <button type="submit" className="btn btn-green">Registrar Pago</button>
+                            </form>
+                        </div>
                     </div>
 
                     <div style={{ background: 'var(--white)', padding: '24px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
@@ -889,26 +1067,36 @@ const AdminDashboard = () => {
 
                     <div style={{ background: 'var(--white)', padding: '24px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
                         <h2 style={{ fontSize: '1.25rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '24px' }}>Reserva de Instalaciones</h2>
-                        <form style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <form onSubmit={handleReservaSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <div>
                                 <label style={labelStyle}>Instalación</label>
-                                <select style={inputStyle}>
-                                    <option value="1">Gimnasio Cubierto</option>
-                                    <option value="2">Pileta Climatizada</option>
-                                    <option value="3">Laboratorio de Informática</option>
+                                <select name="instalacion_id" required style={inputStyle}>
+                                    <option value="">Seleccionar Instalación</option>
+                                    {instalaciones.map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
                                 </select>
+                                {instalaciones.length === 0 && (
+                                    <p style={{ fontSize: '0.75rem', color: '#991b1b', marginTop: '6px' }}>No hay instalaciones cargadas en la base de datos.</p>
+                                )}
+                            </div>
+                            <div>
+                                <label style={labelStyle}>Fecha</label>
+                                <input type="date" name="fecha" required style={inputStyle} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                                 <div>
-                                    <label style={labelStyle}>Fecha</label>
-                                    <input type="date" style={inputStyle} />
+                                    <label style={labelStyle}>Hora Inicio</label>
+                                    <input type="time" name="hora_inicio" required style={inputStyle} />
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>Hora</label>
-                                    <input type="time" style={inputStyle} />
+                                    <label style={labelStyle}>Hora Fin</label>
+                                    <input type="time" name="hora_fin" required style={inputStyle} />
                                 </div>
                             </div>
-                            <button type="button" className="btn btn-violet" style={{ padding: '14px' }}>Verificar y Reservar</button>
+                            <div>
+                                <label style={labelStyle}>Motivo</label>
+                                <input name="motivo" required placeholder="Motivo de la reserva" style={inputStyle} />
+                            </div>
+                            <button type="submit" className="btn btn-violet" style={{ padding: '14px' }}>Verificar y Reservar</button>
                         </form>
                     </div>
                 </div>
@@ -917,52 +1105,39 @@ const AdminDashboard = () => {
             {activeTab === 'reportes' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
                     <div style={{ background: 'var(--white)', padding: '24px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
-                        <h2 style={{ fontSize: '1.1rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '20px' }}>📈 Rendimiento Académico</h2>
-                        <div style={{ height: '200px', background: '#f8fafc', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '20px' }}>
-                            <div style={{ marginBottom: '10px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '5px' }}>
-                                    <span>Nivel Primario</span>
-                                    <span>8.2</span>
+                        <h2 style={{ fontSize: '1.1rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '20px' }}>📈 Indicadores Institucionales</h2>
+                        {reportesStats === null ? (
+                            <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Cargando estadísticas…</p>
+                        ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                                <div style={{ padding: '14px', background: '#f0f9ff', borderRadius: '10px', textAlign: 'center' }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Alumnos</span>
+                                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--blue)' }}>{reportesStats.total_alumnos}</div>
                                 </div>
-                                <div style={{ height: '8px', background: '#e2e8f0', borderRadius: '4px' }}>
-                                    <div style={{ width: '82%', height: '100%', background: 'var(--blue)', borderRadius: '4px' }}></div>
+                                <div style={{ padding: '14px', background: '#f0fdf4', borderRadius: '10px', textAlign: 'center' }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Docentes</span>
+                                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--green)' }}>{reportesStats.total_docentes}</div>
+                                </div>
+                                <div style={{ padding: '14px', background: '#fffbeb', borderRadius: '10px', textAlign: 'center' }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Preinscr. Pendientes</span>
+                                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--orange)' }}>{reportesStats.preinscripciones_pendientes}</div>
+                                </div>
+                                <div style={{ padding: '14px', background: '#fef2f2', borderRadius: '10px', textAlign: 'center' }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Deuda Total</span>
+                                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#991b1b' }}>${Number(reportesStats.deuda_total || 0).toFixed(2)}</div>
                                 </div>
                             </div>
-                            <div style={{ marginBottom: '10px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '5px' }}>
-                                    <span>Nivel Secundario</span>
-                                    <span>7.5</span>
-                                </div>
-                                <div style={{ height: '8px', background: '#e2e8f0', borderRadius: '4px' }}>
-                                    <div style={{ width: '75%', height: '100%', background: 'var(--orange)', borderRadius: '4px' }}></div>
-                                </div>
-                            </div>
-                        </div>
+                        )}
+                        <button onClick={fetchReportesStats} className="btn btn-hero-outline" style={{ fontSize: '0.75rem', color: 'var(--blue)', borderColor: 'var(--blue)', marginTop: '16px' }}>🔄 Refrescar</button>
                     </div>
-                    <div style={{ background: 'var(--white)', padding: '24px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
-                        <h2 style={{ fontSize: '1.1rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '20px' }}>📊 Situación Financiera</h2>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span>Recaudación Mes Actual</span>
-                                <span style={{ fontWeight: 800, color: 'var(--green)' }}>$2.450.000</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span>Morosidad Estimada</span>
-                                <span style={{ fontWeight: 800, color: 'var(--orange)' }}>$320.500</span>
-                            </div>
-                            <div style={{ height: '10px', background: '#f1f5f9', borderRadius: '10px', marginTop: '10px', overflow: 'hidden' }}>
-                                <div style={{ width: '85%', height: '100%', background: 'var(--green)' }}></div>
-                            </div>
-                            <p style={{ fontSize: '0.7rem', color: '#64748b', textAlign: 'right' }}>85% de efectividad de cobro</p>
-                        </div>
-                    </div>
+
                     <div style={{ background: 'var(--white)', padding: '24px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
                         <h2 style={{ fontSize: '1.1rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '20px' }}>📋 Listados Disponibles</h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <button className="btn btn-hero-outline" style={{ fontSize: '0.85rem', textAlign: 'left' }}>📄 Listado de Deudores</button>
-                            <button className="btn btn-hero-outline" style={{ fontSize: '0.85rem', textAlign: 'left' }}>📄 Planillas de Asistencia</button>
-                            <button className="btn btn-hero-outline" style={{ fontSize: '0.85rem', textAlign: 'left' }}>📄 Legajos de Alumnos</button>
-                            <button className="btn btn-hero-outline" style={{ fontSize: '0.85rem', textAlign: 'left' }}>📄 Nómina de Personal</button>
+                            <button onClick={exportDeudores} className="btn btn-hero-outline" style={{ fontSize: '0.85rem', textAlign: 'left', color: 'var(--blue)', borderColor: 'var(--blue)' }}>📄 Listado de Deudores (CSV)</button>
+                            <button onClick={exportPlanillaAsistencia} className="btn btn-hero-outline" style={{ fontSize: '0.85rem', textAlign: 'left', color: 'var(--blue)', borderColor: 'var(--blue)' }}>📄 Planilla de Asistencia (CSV)</button>
+                            <button onClick={exportLegajos} className="btn btn-hero-outline" style={{ fontSize: '0.85rem', textAlign: 'left', color: 'var(--blue)', borderColor: 'var(--blue)' }}>📄 Legajos de Alumnos (CSV)</button>
+                            <button onClick={exportPersonal} className="btn btn-hero-outline" style={{ fontSize: '0.85rem', textAlign: 'left', color: 'var(--blue)', borderColor: 'var(--blue)' }}>📄 Nómina de Personal (CSV)</button>
                         </div>
                     </div>
                 </div>

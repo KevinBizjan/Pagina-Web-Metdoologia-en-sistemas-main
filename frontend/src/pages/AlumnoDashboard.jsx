@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
+import { useAuth } from '../context/AuthContext';
 
 const AlumnoDashboard = () => {
+    const { apiFetch } = useAuth();
+    const [notificaciones, setNotificaciones] = useState([]);
+
     const materias = [
         { nombre: 'Matemáticas', docente: 'Prof. Gómez', nota: '9' },
         { nombre: 'Lengua y Literatura', docente: 'Prof. Rodríguez', nota: '8' },
@@ -14,6 +18,18 @@ const AlumnoDashboard = () => {
         { dia: 'Martes', materia: 'Lengua', hora: '10:00 - 11:30' },
         { dia: 'Miércoles', materia: 'Ciencias', hora: '08:00 - 09:30' }
     ];
+
+    useEffect(() => {
+        const fetchNotificaciones = async () => {
+            try {
+                const response = await apiFetch('http://localhost:3000/api/comunicacion/notificaciones');
+                if (response.ok) setNotificaciones(await response.json());
+            } catch (error) {
+                console.error('Error al cargar notificaciones:', error);
+            }
+        };
+        fetchNotificaciones();
+    }, [apiFetch]);
 
     return (
         <DashboardLayout title="Panel del Alumno">
@@ -53,16 +69,19 @@ const AlumnoDashboard = () => {
                 <div className="dashboard-card" style={{ ...cardStyle, gridColumn: '1 / -1' }}>
                     <h3 style={cardTitleStyle}>📢 Comunicados Recientes</h3>
                     <div style={{ marginTop: '16px' }}>
-                        <div style={comunicadoStyle}>
-                            <p style={{ fontWeight: 800, color: 'var(--orange)' }}>Importante: Entrega de Proyectos</p>
-                            <p style={{ fontSize: '0.9rem', marginTop: '4px', lineHeight: '1.5' }}>Recuerden que la fecha límite para la entrega del proyecto de ciencias es el próximo viernes 15 de mayo.</p>
-                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginTop: '8px', fontWeight: 700 }}>Publicado hace 2 horas</span>
-                        </div>
-                        <div style={comunicadoStyle}>
-                            <p style={{ fontWeight: 800, color: 'var(--green)' }}>Taller de Robótica</p>
-                            <p style={{ fontSize: '0.9rem', marginTop: '4px', lineHeight: '1.5' }}>Se abren las inscripciones para el nuevo taller de robótica avanzado. Cupos limitados para el turno tarde.</p>
-                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginTop: '8px', fontWeight: 700 }}>Publicado ayer</span>
-                        </div>
+                        {notificaciones.length === 0 ? (
+                            <p style={{ fontSize: '0.9rem', color: '#64748b', padding: '12px 0' }}>No hay comunicados nuevos por el momento.</p>
+                        ) : (
+                            notificaciones.map((n) => (
+                                <div key={n.id} style={comunicadoStyle}>
+                                    <p style={{ fontWeight: 800, color: 'var(--orange)' }}>{n.titulo}</p>
+                                    <p style={{ fontSize: '0.9rem', marginTop: '4px', lineHeight: '1.5' }}>{n.mensaje}</p>
+                                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginTop: '8px', fontWeight: 700 }}>
+                                        {new Date(n.fecha_envio).toLocaleString()}
+                                    </span>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             </div>

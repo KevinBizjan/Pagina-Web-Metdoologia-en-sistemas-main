@@ -62,7 +62,7 @@ exports.getAlumnos = (req, res) => {
 };
 
 exports.createAlumno = (req, res) => {
-    const { nombre, apellido, dni, fecha_nacimiento, curso_id } = req.body;
+    const { nombre, apellido, dni, fecha_nacimiento, curso_id, tutor_id } = req.body;
     if (!nombre || !apellido || !dni || !fecha_nacimiento) {
         return res.status(400).json({ message: "Nombre, Apellido, DNI y Fecha de Nacimiento son obligatorios" });
     }
@@ -73,7 +73,7 @@ exports.createAlumno = (req, res) => {
             if (err) return res.status(500).json({ message: err.message });
             if (!curso) return res.status(404).json({ message: "Curso no encontrado" });
             if (curso.inscriptos >= curso.cupo) return res.status(400).json({ message: "No hay vacantes disponibles en este curso" });
-            
+
             saveAlumno();
         });
     } else {
@@ -81,8 +81,8 @@ exports.createAlumno = (req, res) => {
     }
 
     function saveAlumno() {
-        const query = "INSERT INTO alumnos (nombre, apellido, dni, fecha_nacimiento, curso_id) VALUES (?, ?, ?, ?, ?)";
-        db.run(query, [nombre, apellido, dni, fecha_nacimiento, curso_id], function(err) {
+        const query = "INSERT INTO alumnos (nombre, apellido, dni, fecha_nacimiento, curso_id, tutor_id) VALUES (?, ?, ?, ?, ?, ?)";
+        db.run(query, [nombre, apellido, dni, fecha_nacimiento, curso_id || null, tutor_id || null], function(err) {
             if (err) return res.status(500).json({ message: err.message });
             res.status(201).json({ id: this.lastID });
         });
@@ -91,17 +91,40 @@ exports.createAlumno = (req, res) => {
 
 exports.updateAlumno = (req, res) => {
     const { id } = req.params;
-    const { nombre, apellido, dni, fecha_nacimiento, curso_id } = req.body;
-    
+    const { nombre, apellido, dni, fecha_nacimiento, curso_id, tutor_id } = req.body;
+
     const query = `
-        UPDATE alumnos 
-        SET nombre = ?, apellido = ?, dni = ?, fecha_nacimiento = ?, curso_id = ? 
+        UPDATE alumnos
+        SET nombre = ?, apellido = ?, dni = ?, fecha_nacimiento = ?, curso_id = ?, tutor_id = ?
         WHERE id = ?
     `;
-    db.run(query, [nombre, apellido, dni, fecha_nacimiento, curso_id, id], function(err) {
+    db.run(query, [nombre, apellido, dni, fecha_nacimiento, curso_id || null, tutor_id || null, id], function(err) {
         if (err) return res.status(500).json({ message: err.message });
         if (this.changes === 0) return res.status(404).json({ message: "Alumno no encontrado" });
         res.json({ message: "Alumno actualizado correctamente" });
+    });
+};
+
+// --- MATERIAS ---
+exports.getMaterias = (req, res) => {
+    db.all("SELECT * FROM materias ORDER BY nombre", [], (err, rows) => {
+        if (err) return res.status(500).json({ message: err.message });
+        res.json(rows);
+    });
+};
+
+// --- MIS HIJOS (para rol padre) ---
+exports.getMisHijos = (req, res) => {
+    const query = `
+        SELECT alumnos.*, cursos.division, niveles.nombre as nivel_nombre
+        FROM alumnos
+        LEFT JOIN cursos ON alumnos.curso_id = cursos.id
+        LEFT JOIN niveles ON cursos.nivel_id = niveles.id
+        WHERE alumnos.tutor_id = ?
+    `;
+    db.all(query, [req.user.id], (err, rows) => {
+        if (err) return res.status(500).json({ message: err.message });
+        res.json(rows);
     });
 };
 

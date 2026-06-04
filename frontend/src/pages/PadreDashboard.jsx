@@ -1,23 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
+import { useAuth } from '../context/AuthContext';
 
 const PadreDashboard = () => {
+    const { apiFetch } = useAuth();
     const [showMenu, setShowMenu] = useState(false);
     const [showReporte, setShowReporte] = useState(false);
     const [notificaciones, setNotificaciones] = useState([]);
+    const [hijosReales, setHijosReales] = useState([]);
+    const [saldoTotal, setSaldoTotal] = useState(0);
 
     useEffect(() => {
         fetchNotificaciones();
+        fetchHijosYSaldos();
     }, []);
 
     const fetchNotificaciones = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/comunicacion/notificaciones', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-            if (response.ok) setNotificaciones(data);
+            const response = await apiFetch('http://localhost:3000/api/comunicacion/notificaciones');
+            if (response.ok) setNotificaciones(await response.json());
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const fetchHijosYSaldos = async () => {
+        try {
+            const response = await apiFetch('http://localhost:3000/api/academico/mis-hijos');
+            if (!response.ok) return;
+            const lista = await response.json();
+            const saldos = await Promise.all(lista.map(async (h) => {
+                const r = await apiFetch(`http://localhost:3000/api/financiero/saldo/${h.id}`);
+                if (!r.ok) return { ...h, saldo_pendiente: 0 };
+                const s = await r.json();
+                return { ...h, saldo_pendiente: Number(s.saldo_pendiente) || 0 };
+            }));
+            setHijosReales(saldos);
+            setSaldoTotal(saldos.reduce((acc, h) => acc + h.saldo_pendiente, 0));
         } catch (error) {
             console.error(error);
         }
@@ -146,14 +165,15 @@ const PadreDashboard = () => {
                             <p style={{ fontSize: '0.85rem', color: '#64748b' }}>No hay avisos nuevos.</p>
                         ) : (
                             notificaciones.map((a, i) => (
-                                <div 
-                                    key={i} 
-                                    style={{ 
-                                        ...avisoStyle, 
+                                <div
+                                    key={i}
+                                    style={{
+                                        ...avisoStyle,
                                         opacity: avisosLeidos.includes(a.id) ? 0.7 : 1,
-                                        borderLeftColor: avisosLeidos.includes(a.id) ? '#cbd5e1' : 'var(--orange)'
+                                        borderLeftColor: avisosLeidos.includes(a.id) ? '#cbd5e1' : 'var(--orange)',
+                                        cursor: 'pointer'
                                     }}
-                                    onMouseEnter={() => markAsRead(a.id)}
+                                    onClick={() => markAsRead(a.id)}
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <p style={{ fontWeight: 800, fontSize: '0.95rem' }}>
@@ -177,27 +197,44 @@ const PadreDashboard = () => {
                 <div className="dashboard-card" style={cardStyle}>
                     <h3 style={cardTitleStyle}>💳 Estado de Cuenta</h3>
                     <div style={{ marginTop: '20px' }}>
-                        <div style={{ 
-                            padding: '20px', background: '#f0f9ff', borderRadius: '12px', border: '1px solid #bae6fd',
+                        <div style={{
+                            padding: '20px',
+                            background: saldoTotal > 0 ? '#fef2f2' : '#f0f9ff',
+                            borderRadius: '12px',
+                            border: `1px solid ${saldoTotal > 0 ? '#fecaca' : '#bae6fd'}`,
                             textAlign: 'center', marginBottom: '20px'
                         }}>
                             <span style={labelStyle}>Saldo Pendiente Total</span>
-                            <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--blue)', marginTop: '4px' }}>$0.00</div>
-                            <p style={{ fontSize: '0.75rem', color: '#0369a1', marginTop: '8px', fontWeight: 700 }}>✅ Cuenta al día</p>
+                            <div style={{ fontSize: '2rem', fontWeight: 900, color: saldoTotal > 0 ? '#991b1b' : 'var(--blue)', marginTop: '4px' }}>
+                                ${saldoTotal.toFixed(2)}
+                            </div>
+                            <p style={{ fontSize: '0.75rem', color: saldoTotal > 0 ? '#991b1b' : '#0369a1', marginTop: '8px', fontWeight: 700 }}>
+                                {saldoTotal > 0 ? '⚠️ Posee saldo pendiente' : '✅ Cuenta al día'}
+                            </p>
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                                <span>Matrícula 2027</span>
-                                <span style={{ fontWeight: 800, color: 'var(--green)' }}>PAGADO</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                                <span>Seguro Escolar</span>
-                                <span style={{ fontWeight: 800, color: 'var(--green)' }}>PAGADO</span>
-                            </div>
+                            {hijosReales.length === 0 ? (
+                                <p style={{ fontSize: '0.8rem', color: '#64748b', padding: '8px 0' }}>
+                                    Aún no hay hijos vinculados a su cuenta. Solicite a administración la vinculación de su tutoría con el legajo del alumno.
+                                </p>
+                            ) : (
+                                hijosReales.map(h => (
+                                    <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                        <span>{h.apellido}, {h.nombre}</span>
+                                        <span style={{ fontWeight: 800, color: h.saldo_pendiente > 0 ? '#991b1b' : 'var(--green)' }}>
+                                            {h.saldo_pendiente > 0 ? `$${h.saldo_pendiente.toFixed(2)}` : 'AL DÍA'}
+                                        </span>
+                                    </div>
+                                ))
+                            )}
                         </div>
 
-                        <button className="btn btn-hero-outline" style={{ width: '100%', marginTop: '20px', fontSize: '0.8rem' }}>📥 Descargar Historial (PDF)</button>
+                        <button
+                            onClick={() => window.print()}
+                            className="btn btn-hero-outline"
+                            style={{ width: '100%', marginTop: '20px', fontSize: '0.8rem', color: 'var(--blue)', borderColor: 'var(--blue)' }}
+                        >📥 Imprimir / Guardar como PDF</button>
                     </div>
                 </div>
 

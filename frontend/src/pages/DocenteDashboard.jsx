@@ -1,30 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
+import { useAuth } from '../context/AuthContext';
 
 const DocenteDashboard = () => {
+    const { apiFetch } = useAuth();
     const [alumnos, setAlumnos] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [materias, setMaterias] = useState([]);
+    const [materiaSel, setMateriaSel] = useState('');
+    const [, setLoading] = useState(true);
     const [aviso, setAviso] = useState('');
+    const [instalaciones, setInstalaciones] = useState([]);
+
+    // Modales servicios
+    const [modal, setModal] = useState(null); // 'incidencia' | 'comedor' | 'reserva' | null
 
     useEffect(() => {
         fetchAlumnos();
+        fetchMaterias();
+        fetchInstalaciones();
     }, []);
 
     const fetchAlumnos = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/academico/alumnos', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await apiFetch('http://localhost:3000/api/academico/alumnos');
             const data = await response.json();
             if (response.ok) {
-                // Agregar campos temporales para asistencia y nota si no vienen de la DB
                 setAlumnos(data.map(a => ({ ...a, asistencia: 'Presente', notaTmp: '' })));
             }
         } catch (error) {
             console.error('Error:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchMaterias = async () => {
+        try {
+            const response = await apiFetch('http://localhost:3000/api/academico/materias');
+            if (response.ok) {
+                const data = await response.json();
+                setMaterias(data);
+                if (data.length > 0) setMateriaSel(String(data[0].id));
+            }
+        } catch (error) {
+            console.error('Error materias:', error);
+        }
+    };
+
+    const fetchInstalaciones = async () => {
+        try {
+            const response = await apiFetch('http://localhost:3000/api/servicios/instalaciones');
+            if (response.ok) setInstalaciones(await response.json());
+        } catch (error) {
+            console.error('Error instalaciones:', error);
         }
     };
 
@@ -40,29 +68,27 @@ const DocenteDashboard = () => {
         if (!nota) return '#e2e8f0';
         const val = parseInt(nota);
         if (val >= 7) return '#dcfce7'; // Verde
-        if (val >= 4) return '#ffferb'; // Amarillo
+        if (val >= 4) return '#fef9c3'; // Amarillo
         return '#fef2f2'; // Rojo
     };
 
     const saveAsistencia = async () => {
+        if (alumnos.length === 0) return alert('No hay alumnos para registrar.');
         try {
-            const token = localStorage.getItem('token');
-            const promises = alumnos.map(a => 
-                fetch('http://localhost:3000/api/academico/asistencias', {
+            const results = await Promise.all(alumnos.map(a =>
+                apiFetch('http://localhost:3000/api/academico/asistencias', {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` 
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         alumno_id: a.id,
                         fecha: new Date().toISOString().split('T')[0],
                         estado: a.asistencia
                     })
-                })
-            );
-            await Promise.all(promises);
-            alert('Asistencia guardada correctamente');
+                }).then(r => r.ok).catch(() => false)
+            ));
+            const fallidos = results.filter(ok => !ok).length;
+            if (fallidos === 0) alert('Asistencia guardada correctamente');
+            else alert(`Asistencia guardada parcialmente: ${fallidos} registro(s) fallaron.`);
         } catch (error) {
             console.error(error);
             alert('Error al guardar asistencia');
@@ -72,21 +98,21 @@ const DocenteDashboard = () => {
     const saveNota = async (alumnoId, nota) => {
         if (!nota) return alert('Ingrese una nota');
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/academico/calificaciones', {
+            const response = await apiFetch('http://localhost:3000/api/academico/calificaciones', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     alumno_id: alumnoId,
-                    materia_id: 1, // Simulado, debería venir de la selección del docente
+                    materia_id: materiaSel ? parseInt(materiaSel) : 1,
                     nota: nota,
                     trimestre: 1
                 })
             });
             if (response.ok) alert('Calificación guardada');
+            else {
+                const data = await response.json().catch(() => ({}));
+                alert(data.message || 'Error al guardar la calificación');
+            }
         } catch (error) {
             console.error(error);
         }
@@ -95,13 +121,9 @@ const DocenteDashboard = () => {
     const publicarAviso = async () => {
         if (!aviso) return;
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/comunicacion/notificaciones', {
+            const response = await apiFetch('http://localhost:3000/api/comunicacion/notificaciones', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     titulo: 'Aviso del Docente',
                     mensaje: aviso,
@@ -121,6 +143,77 @@ const DocenteDashboard = () => {
         const val = parseInt(nuevaNota);
         if (nuevaNota !== '' && (val < 1 || val > 10)) return;
         setAlumnos(alumnos.map(a => a.id === id ? { ...a, notaTmp: nuevaNota } : a));
+    };
+
+    const finalizarTrimestre = () => {
+        const cargadas = alumnos.filter(a => a.notaTmp !== '').length;
+        if (cargadas === 0) {
+            alert('Aún no se cargaron notas en esta sesión.');
+            return;
+        }
+        alert(`Carga finalizada. ${cargadas} calificación(es) confirmada(s) para el trimestre actual.`);
+    };
+
+    const handleIncidenciaSubmit = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const data = {
+            alumno_id: parseInt(form.alumno_id.value),
+            descripcion: form.descripcion.value,
+            accion_tomada: form.accion_tomada.value,
+            notificado_padre: form.notificado_padre.checked ? 1 : 0
+        };
+        if (data.descripcion.length < 10) return alert('La descripción debe tener al menos 10 caracteres.');
+        try {
+            const r = await apiFetch('http://localhost:3000/api/servicios/enfermeria/incidencia', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (r.ok) { alert('Incidencia registrada'); setModal(null); }
+            else { const d = await r.json().catch(() => ({})); alert(d.message || 'Error al registrar incidencia'); }
+        } catch (err) { console.error(err); alert('Error de conexión'); }
+    };
+
+    const handleComedorSubmit = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const data = {
+            alumno_id: parseInt(form.alumno_id.value),
+            consumio_menu: form.consumio_menu.checked ? 1 : 0,
+            observaciones: form.observaciones.value
+        };
+        try {
+            const r = await apiFetch('http://localhost:3000/api/servicios/comedor/asistencia', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (r.ok) { alert('Asistencia al comedor registrada'); setModal(null); }
+            else { const d = await r.json().catch(() => ({})); alert(d.message || 'Error al registrar'); }
+        } catch (err) { console.error(err); alert('Error de conexión'); }
+    };
+
+    const handleReservaLabSubmit = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const data = {
+            instalacion_id: parseInt(form.instalacion_id.value),
+            fecha: form.fecha.value,
+            hora_inicio: form.hora_inicio.value,
+            hora_fin: form.hora_fin.value,
+            motivo: form.motivo.value,
+            reservado_por: JSON.parse(localStorage.getItem('user') || '{}').id || null
+        };
+        try {
+            const r = await apiFetch('http://localhost:3000/api/servicios/instalaciones/reservar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (r.ok) { alert('Reserva realizada'); setModal(null); }
+            else { const d = await r.json().catch(() => ({})); alert(d.message || 'Error al reservar'); }
+        } catch (err) { console.error(err); alert('Error de conexión'); }
     };
 
     return (
@@ -174,7 +267,22 @@ const DocenteDashboard = () => {
                         <h3 style={{ fontSize: '1.1rem', color: 'var(--blue)', fontWeight: 800 }}>📝 Calificaciones</h3>
                         <span style={{ fontSize: '0.75rem', background: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '50px', fontWeight: 800 }}>4° Año - Div. A</span>
                     </div>
-                    
+
+                    <div style={{ marginTop: '16px' }}>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Materia</label>
+                        <select
+                            value={materiaSel}
+                            onChange={(e) => setMateriaSel(e.target.value)}
+                            style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9rem' }}
+                        >
+                            {materias.length === 0 ? (
+                                <option value="">Materia General (sin configurar)</option>
+                            ) : (
+                                materias.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)
+                            )}
+                        </select>
+                    </div>
+
                     <div style={{ marginTop: '20px' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
@@ -213,7 +321,7 @@ const DocenteDashboard = () => {
                                 ))}
                             </tbody>
                         </table>
-                        <button className="btn btn-hero-orange" style={{ width: '100%', marginTop: '20px', fontSize: '0.85rem' }}>Finalizar Carga Trimestral</button>
+                        <button onClick={finalizarTrimestre} className="btn btn-hero-orange" style={{ width: '100%', marginTop: '20px', fontSize: '0.85rem' }}>Finalizar Carga Trimestral</button>
                     </div>
                 </div>
 
@@ -247,7 +355,7 @@ const DocenteDashboard = () => {
                 </div>
 
                 {/* Comunicados a Alumnos */}
-                <div className="dashboard-card" style={{ ...cardStyle, gridColumn: '1 / -2' }}>
+                <div className="dashboard-card" style={{ ...cardStyle, gridColumn: '1 / -1' }}>
                     <h3 style={cardTitleStyle}>📣 Comunicado Institucional</h3>
                     <div style={{ marginTop: '16px', display: 'flex', gap: '16px', flexDirection: 'column' }}>
                         <textarea 
@@ -266,21 +374,98 @@ const DocenteDashboard = () => {
                 <div className="dashboard-card" style={cardStyle}>
                     <h3 style={cardTitleStyle}>🏥 Servicios Especiales</h3>
                     <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <button className="btn" style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fee2e2', fontSize: '0.85rem' }}>
+                        <button onClick={() => setModal('incidencia')} className="btn" style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fee2e2', fontSize: '0.85rem' }}>
                             🚑 Reportar Incidencia Médica
                         </button>
-                        <button className="btn" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #dcfce7', fontSize: '0.85rem' }}>
+                        <button onClick={() => setModal('comedor')} className="btn" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #dcfce7', fontSize: '0.85rem' }}>
                             🍎 Asistencia Comedor
                         </button>
-                        <button className="btn" style={{ background: '#eff6ff', color: '#1e40af', border: '1px solid #dbeafe', fontSize: '0.85rem' }}>
+                        <button onClick={() => setModal('reserva')} className="btn" style={{ background: '#eff6ff', color: '#1e40af', border: '1px solid #dbeafe', fontSize: '0.85rem' }}>
                             🧪 Reservar Laboratorio
                         </button>
                     </div>
                 </div>
             </div>
+
+            {modal === 'incidencia' && (
+                <div style={modalOverlay} onClick={() => setModal(null)}>
+                    <div style={modalContent} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                            <h2 style={{ color: 'var(--blue)' }}>🚑 Reportar Incidencia Médica</h2>
+                            <button onClick={() => setModal(null)} style={closeBtn}>✕</button>
+                        </div>
+                        <form onSubmit={handleIncidenciaSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <select name="alumno_id" required style={inputStyle}>
+                                <option value="">Seleccionar Alumno</option>
+                                {alumnos.map(a => <option key={a.id} value={a.id}>{a.apellido}, {a.nombre}</option>)}
+                            </select>
+                            <textarea name="descripcion" required minLength={10} placeholder="Descripción (mín. 10 caracteres)" style={{ ...inputStyle, height: '90px', resize: 'none', fontFamily: 'inherit' }} />
+                            <input name="accion_tomada" placeholder="Acción tomada (opcional)" style={inputStyle} />
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                                <input type="checkbox" name="notificado_padre" /> Notificar al tutor
+                            </label>
+                            <button type="submit" className="btn btn-violet">Registrar</button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {modal === 'comedor' && (
+                <div style={modalOverlay} onClick={() => setModal(null)}>
+                    <div style={modalContent} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                            <h2 style={{ color: 'var(--blue)' }}>🍎 Asistencia al Comedor</h2>
+                            <button onClick={() => setModal(null)} style={closeBtn}>✕</button>
+                        </div>
+                        <form onSubmit={handleComedorSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <select name="alumno_id" required style={inputStyle}>
+                                <option value="">Seleccionar Alumno</option>
+                                {alumnos.map(a => <option key={a.id} value={a.id}>{a.apellido}, {a.nombre}</option>)}
+                            </select>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                                <input type="checkbox" name="consumio_menu" defaultChecked /> Consumió el menú
+                            </label>
+                            <input name="observaciones" placeholder="Observaciones (opcional)" style={inputStyle} />
+                            <button type="submit" className="btn btn-green">Registrar</button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {modal === 'reserva' && (
+                <div style={modalOverlay} onClick={() => setModal(null)}>
+                    <div style={modalContent} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                            <h2 style={{ color: 'var(--blue)' }}>🧪 Reservar Instalación</h2>
+                            <button onClick={() => setModal(null)} style={closeBtn}>✕</button>
+                        </div>
+                        <form onSubmit={handleReservaLabSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <select name="instalacion_id" required style={inputStyle}>
+                                <option value="">Seleccionar Instalación</option>
+                                {instalaciones.map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
+                            </select>
+                            {instalaciones.length === 0 && (
+                                <p style={{ fontSize: '0.75rem', color: '#991b1b' }}>No hay instalaciones cargadas. Solicite a Administración que las dé de alta.</p>
+                            )}
+                            <input type="date" name="fecha" required style={inputStyle} />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                <input type="time" name="hora_inicio" required style={inputStyle} />
+                                <input type="time" name="hora_fin" required style={inputStyle} />
+                            </div>
+                            <input name="motivo" required placeholder="Motivo de la reserva" style={inputStyle} />
+                            <button type="submit" className="btn btn-violet">Reservar</button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </DashboardLayout>
     );
 };
+
+const modalOverlay = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
+const modalContent = { background: 'white', padding: '32px', borderRadius: '16px', width: '90%', maxWidth: '500px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' };
+const closeBtn = { background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' };
+const inputStyle = { padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9rem', outline: 'none', width: '100%' };
 
 const cardStyle = { background: 'var(--white)', padding: '24px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' };
 const cardTitleStyle = { fontSize: '1.1rem', color: 'var(--blue)', borderBottom: '2px solid #f1f5f9', paddingBottom: '12px' };

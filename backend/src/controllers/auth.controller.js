@@ -72,3 +72,10 @@ exports.getMe = (req, res) => {
         res.json(user);
     });
 };
+
+exports.getPadres = (req, res) => {
+    db.all(`SELECT id, nombre, username FROM users WHERE rol = 'padre' ORDER BY nombre`, [], (err, rows) => {
+        if (err) return res.status(500).json({ message: err.message });
+        res.json(rows);
+    });
+};
