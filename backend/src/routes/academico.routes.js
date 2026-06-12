@@ -19,6 +19,16 @@ router.put('/alumnos/:id', authMiddleware(['admin']), academicoController.update
 router.delete('/alumnos/:id', authMiddleware(['admin']), academicoController.deleteAlumno);
 
 router.get('/materias', authMiddleware(['admin', 'docente']), academicoController.getMaterias);
+router.post('/materias', authMiddleware(['admin']), academicoController.createMateria);
+router.delete('/materias/:id', authMiddleware(['admin']), academicoController.deleteMateria);
+
+// Actividades extracurriculares (deportivas/culturales)
+router.get('/actividades', authMiddleware(['admin', 'alumno']), academicoController.getActividades);
+router.post('/actividades', authMiddleware(['admin']), academicoController.createActividad);
+router.delete('/actividades/:id', authMiddleware(['admin']), academicoController.deleteActividad);
+router.get('/mis-inscripciones', authMiddleware(['alumno']), academicoController.getMisInscripciones);
+router.post('/inscribir-actividad', authMiddleware(['alumno']), academicoController.inscribirActividad);
+router.delete('/desinscribir-actividad/:actividad_id', authMiddleware(['alumno']), academicoController.desinscribirActividad);
 router.get('/mis-hijos', authMiddleware(['padre']), academicoController.getMisHijos);
 router.get('/alumnos-disponibles', authMiddleware(['padre']), academicoController.getAlumnosDisponibles);
 router.post('/vincular-hijo', authMiddleware(['padre']), academicoController.vincularHijo);

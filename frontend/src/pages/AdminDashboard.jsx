@@ -21,6 +21,8 @@ const AdminDashboard = () => {
     const [instalaciones, setInstalaciones] = useState([]);
     const [cuotasConfig, setCuotasConfig] = useState([]);
     const [reportesStats, setReportesStats] = useState(null);
+    const [materias, setMaterias] = useState([]);
+    const [actividades, setActividades] = useState([]);
 
     useEffect(() => {
         if (activeTab === 'preinscripciones') fetchPreinscripciones();
@@ -30,7 +32,72 @@ const AdminDashboard = () => {
         if (activeTab === 'finanzas') { fetchFinanzas(); fetchNiveles(); fetchAlumnos(); }
         if (activeTab === 'servicios') fetchServicios();
         if (activeTab === 'reportes') fetchReportesStats();
+        if (activeTab === 'materias') { fetchMaterias(); fetchCursosYAulas(); }
+        if (activeTab === 'actividades') fetchActividades();
     }, [activeTab]);
+
+    const fetchMaterias = async () => {
+        try {
+            const response = await apiFetch('http://localhost:3000/api/academico/materias');
+            if (response.ok) setMaterias(await response.json());
+        } catch (error) {
+            console.error('Error materias:', error);
+        }
+    };
+
+    const fetchActividades = async () => {
+        try {
+            const response = await apiFetch('http://localhost:3000/api/academico/actividades');
+            if (response.ok) setActividades(await response.json());
+        } catch (error) {
+            console.error('Error actividades:', error);
+        }
+    };
+
+    const handleMateriaSubmit = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const datos = { nombre: form.nombre.value, curso_id: form.curso_id.value };
+        if (!datos.curso_id) return alert('Seleccioná un curso para la materia.');
+        const response = await apiFetch('http://localhost:3000/api/academico/materias', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+        if (response.ok) { form.reset(); fetchMaterias(); }
+        else { const d = await response.json(); alert(d.message || 'Error al crear materia'); }
+    };
+
+    const deleteMateria = async (id) => {
+        if (!window.confirm('¿Eliminar esta materia?')) return;
+        const response = await apiFetch(`http://localhost:3000/api/academico/materias/${id}`, { method: 'DELETE' });
+        if (response.ok) fetchMaterias();
+    };
+
+    const handleActividadSubmit = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const datos = {
+            nombre: form.nombre.value,
+            tipo: form.tipo.value,
+            horario: form.horario.value,
+            cupo_max: parseInt(form.cupo_max.value)
+        };
+        if (!datos.cupo_max || datos.cupo_max <= 0) return alert('Ingresá un cupo válido.');
+        const response = await apiFetch('http://localhost:3000/api/academico/actividades', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+        if (response.ok) { form.reset(); fetchActividades(); }
+        else { const d = await response.json(); alert(d.message || 'Error al crear actividad'); }
+    };
+
+    const deleteActividad = async (id) => {
+        if (!window.confirm('¿Eliminar esta actividad? Se borrarán también sus inscripciones.')) return;
+        const response = await apiFetch(`http://localhost:3000/api/academico/actividades/${id}`, { method: 'DELETE' });
+        if (response.ok) fetchActividades();
+    };
 
     const fetchPadres = async () => {
         try {
@@ -595,8 +662,22 @@ const AdminDashboard = () => {
                 >
                     🔧 Servicios
                 </button>
-                <button 
-                    onClick={() => setActiveTab('reportes')} 
+                <button
+                    onClick={() => setActiveTab('materias')}
+                    className={`btn ${activeTab === 'materias' ? 'btn-violet' : 'btn-hero-outline'}`}
+                    style={{ fontSize: '0.8rem', color: activeTab === 'materias' ? 'white' : 'var(--blue)' }}
+                >
+                    📚 Materias
+                </button>
+                <button
+                    onClick={() => setActiveTab('actividades')}
+                    className={`btn ${activeTab === 'actividades' ? 'btn-violet' : 'btn-hero-outline'}`}
+                    style={{ fontSize: '0.8rem', color: activeTab === 'actividades' ? 'white' : 'var(--blue)' }}
+                >
+                    🎭 Actividades
+                </button>
+                <button
+                    onClick={() => setActiveTab('reportes')}
                     className={`btn ${activeTab === 'reportes' ? 'btn-violet' : 'btn-hero-outline'}`}
                     style={{ fontSize: '0.8rem', color: activeTab === 'reportes' ? 'white' : 'var(--blue)' }}
                 >
@@ -1140,6 +1221,110 @@ const AdminDashboard = () => {
                             <button onClick={exportPersonal} className="btn btn-hero-outline" style={{ fontSize: '0.85rem', textAlign: 'left', color: 'var(--blue)', borderColor: 'var(--blue)' }}>📄 Nómina de Personal (CSV)</button>
                         </div>
                     </div>
+                </div>
+            )}
+            {activeTab === 'materias' && (
+                <div style={cardStyle}>
+                    <h2 style={{ fontSize: '1.25rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '8px' }}>Materias por Curso</h2>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>
+                        Las materias se asignan a un curso. Todos los alumnos de ese curso las cursan automáticamente.
+                    </p>
+
+                    <form onSubmit={handleMateriaSubmit} style={{
+                        background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '24px',
+                        display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '12px', alignItems: 'end'
+                    }}>
+                        <input type="text" name="nombre" placeholder="Nombre de la materia" required style={inputStyle} />
+                        <select name="curso_id" required style={inputStyle} defaultValue="">
+                            <option value="">Seleccionar curso...</option>
+                            {cursos.map(c => (
+                                <option key={c.id} value={c.id}>{c.nivel_nombre} - {c.division}</option>
+                            ))}
+                        </select>
+                        <button type="submit" className="btn btn-violet" style={{ whiteSpace: 'nowrap' }}>+ Crear Materia</button>
+                    </form>
+
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
+                                <th style={thStyle}>Materia</th>
+                                <th style={thStyle}>Curso</th>
+                                <th style={thStyle}>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {materias.length === 0 ? (
+                                <tr><td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>No hay materias registradas.</td></tr>
+                            ) : (
+                                materias.map(m => (
+                                    <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                        <td style={tdStyle}><strong>{m.nombre}</strong></td>
+                                        <td style={tdStyle}>{m.nivel_nombre ? `${m.nivel_nombre} - ${m.division}` : 'Sin curso'}</td>
+                                        <td style={tdStyle}>
+                                            <button onClick={() => deleteMateria(m.id)} style={{ background: 'none', border: 'none', color: '#dc2626', fontWeight: 700, cursor: 'pointer' }}>Eliminar</button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {activeTab === 'actividades' && (
+                <div style={cardStyle}>
+                    <h2 style={{ fontSize: '1.25rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '8px' }}>Actividades Extracurriculares</h2>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>
+                        Creá actividades deportivas o culturales. Los alumnos se inscriben desde su portal (hasta cubrir el cupo).
+                    </p>
+
+                    <form onSubmit={handleActividadSubmit} style={{
+                        background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '24px',
+                        display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr 1fr auto', gap: '12px', alignItems: 'end'
+                    }}>
+                        <input type="text" name="nombre" placeholder="Nombre (Ej: Fútbol)" required style={inputStyle} />
+                        <select name="tipo" required style={inputStyle} defaultValue="Deporte">
+                            <option value="Deporte">Deporte</option>
+                            <option value="Cultura">Cultura</option>
+                            <option value="Idioma">Idioma</option>
+                        </select>
+                        <input type="text" name="horario" placeholder="Horario (Ej: Lun y Mié 16hs)" style={inputStyle} />
+                        <input type="number" name="cupo_max" placeholder="Cupo" min="1" required style={inputStyle} />
+                        <button type="submit" className="btn btn-violet" style={{ whiteSpace: 'nowrap' }}>+ Crear</button>
+                    </form>
+
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
+                                <th style={thStyle}>Actividad</th>
+                                <th style={thStyle}>Tipo</th>
+                                <th style={thStyle}>Horario</th>
+                                <th style={thStyle}>Inscriptos / Cupo</th>
+                                <th style={thStyle}>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {actividades.length === 0 ? (
+                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>No hay actividades creadas.</td></tr>
+                            ) : (
+                                actividades.map(a => (
+                                    <tr key={a.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                        <td style={tdStyle}><strong>{a.nombre}</strong></td>
+                                        <td style={tdStyle}>{a.tipo}</td>
+                                        <td style={tdStyle}>{a.horario || '-'}</td>
+                                        <td style={tdStyle}>
+                                            <span style={{ fontWeight: 800, color: a.inscriptos >= a.cupo_max ? '#dc2626' : 'var(--green)' }}>
+                                                {a.inscriptos} / {a.cupo_max}
+                                            </span>
+                                        </td>
+                                        <td style={tdStyle}>
+                                            <button onClick={() => deleteActividad(a.id)} style={{ background: 'none', border: 'none', color: '#dc2626', fontWeight: 700, cursor: 'pointer' }}>Eliminar</button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             )}
         </DashboardLayout>

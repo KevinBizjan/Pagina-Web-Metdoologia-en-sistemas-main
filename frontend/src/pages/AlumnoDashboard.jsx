@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 const AlumnoDashboard = () => {
     const { apiFetch } = useAuth();
     const [notificaciones, setNotificaciones] = useState([]);
+    const [actividades, setActividades] = useState([]);
+    const [misInscripciones, setMisInscripciones] = useState([]);
 
     const materias = [
         { nombre: 'Matemáticas', docente: 'Prof. Gómez', nota: '9' },
@@ -29,7 +31,39 @@ const AlumnoDashboard = () => {
             }
         };
         fetchNotificaciones();
+        fetchActividades();
     }, [apiFetch]);
+
+    const fetchActividades = async () => {
+        try {
+            const [resAct, resMis] = await Promise.all([
+                apiFetch('http://localhost:3000/api/academico/actividades'),
+                apiFetch('http://localhost:3000/api/academico/mis-inscripciones')
+            ]);
+            if (resAct.ok) setActividades(await resAct.json());
+            if (resMis.ok) setMisInscripciones(await resMis.json());
+        } catch (error) {
+            console.error('Error al cargar actividades:', error);
+        }
+    };
+
+    const estaInscripto = (actividadId) => misInscripciones.some(a => a.id === actividadId);
+
+    const inscribirse = async (actividadId) => {
+        const response = await apiFetch('http://localhost:3000/api/academico/inscribir-actividad', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ actividad_id: actividadId })
+        });
+        const data = await response.json();
+        if (response.ok) fetchActividades();
+        else alert(data.message || 'No te pudiste inscribir.');
+    };
+
+    const cancelarInscripcion = async (actividadId) => {
+        const response = await apiFetch(`http://localhost:3000/api/academico/desinscribir-actividad/${actividadId}`, { method: 'DELETE' });
+        if (response.ok) fetchActividades();
+    };
 
     return (
         <DashboardLayout title="Panel del Alumno">
@@ -62,6 +96,40 @@ const AlumnoDashboard = () => {
                                 <p style={{ fontSize: '0.85rem', color: 'var(--blue)', fontWeight: 600 }}>{h.materia} <span style={{ color: 'var(--text-sm)', fontWeight: 400 }}>({h.hora})</span></p>
                             </div>
                         ))}
+                    </div>
+                </div>
+
+                {/* Actividades Extracurriculares */}
+                <div className="dashboard-card" style={{ ...cardStyle, gridColumn: '1 / -1' }}>
+                    <h3 style={cardTitleStyle}>🎭 Actividades Extracurriculares</h3>
+                    <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+                        {actividades.length === 0 ? (
+                            <p style={{ fontSize: '0.9rem', color: '#64748b' }}>No hay actividades disponibles por el momento.</p>
+                        ) : (
+                            actividades.map(a => {
+                                const inscripto = estaInscripto(a.id);
+                                const lleno = a.inscriptos >= a.cupo_max;
+                                return (
+                                    <div key={a.id} style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 800, color: 'white', background: a.tipo === 'Deporte' ? 'var(--green)' : a.tipo === 'Cultura' ? 'var(--violet)' : 'var(--orange)', padding: '3px 8px', borderRadius: '6px' }}>{a.tipo}</span>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: lleno ? '#dc2626' : '#64748b' }}>{a.inscriptos}/{a.cupo_max}</span>
+                                        </div>
+                                        <p style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text)', marginTop: '10px' }}>{a.nombre}</p>
+                                        <p style={{ fontSize: '0.8rem', color: 'var(--text-sm)', marginBottom: '12px' }}>{a.horario || 'Horario a confirmar'}</p>
+                                        {inscripto ? (
+                                            <button onClick={() => cancelarInscripcion(a.id)} className="btn btn-hero-outline" style={{ width: '100%', fontSize: '0.8rem', color: '#dc2626', borderColor: '#dc2626' }}>
+                                                ✓ Inscripto — Cancelar
+                                            </button>
+                                        ) : (
+                                            <button onClick={() => inscribirse(a.id)} disabled={lleno} className="btn btn-violet" style={{ width: '100%', fontSize: '0.8rem', opacity: lleno ? 0.5 : 1, cursor: lleno ? 'not-allowed' : 'pointer' }}>
+                                                {lleno ? 'Sin cupo' : 'Inscribirme'}
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
                 </div>
 

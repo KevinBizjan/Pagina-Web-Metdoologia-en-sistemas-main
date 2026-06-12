@@ -106,11 +106,154 @@ exports.updateAlumno = (req, res) => {
 };
 
 // --- MATERIAS ---
+// Devuelve las materias con el curso al que pertenecen (nivel y división).
+// Se agregan campos extra por JOIN; los existentes (id, nombre, curso_id) se mantienen.
 exports.getMaterias = (req, res) => {
-    db.all("SELECT * FROM materias ORDER BY nombre", [], (err, rows) => {
+    const query = `
+        SELECT materias.*, niveles.nombre as nivel_nombre, cursos.division
+        FROM materias
+        LEFT JOIN cursos ON materias.curso_id = cursos.id
+        LEFT JOIN niveles ON cursos.nivel_id = niveles.id
+        ORDER BY niveles.nombre, cursos.division, materias.nombre
+    `;
+    db.all(query, [], (err, rows) => {
         if (err) return res.status(500).json({ message: err.message });
         res.json(rows);
     });
+};
+
+// Crea una materia asociada a un curso. Como el alumno pertenece a un curso,
+// automáticamente "cursa" las materias de ese curso (modelo por curso, no por alumno).
+exports.createMateria = (req, res) => {
+    const nombre = (req.body.nombre || '').trim();
+    const { curso_id } = req.body;
+    if (!nombre || !curso_id) {
+        return res.status(400).json({ message: "Nombre y curso son obligatorios" });
+    }
+    db.run("INSERT INTO materias (nombre, curso_id) VALUES (?, ?)", [nombre, curso_id], function(err) {
+        if (err) return res.status(500).json({ message: err.message });
+        res.status(201).json({ id: this.lastID });
+    });
+};
+
+exports.deleteMateria = (req, res) => {
+    const { id } = req.params;
+    db.run("DELETE FROM materias WHERE id = ?", [id], function(err) {
+        if (err) return res.status(500).json({ message: err.message });
+        if (this.changes === 0) return res.status(404).json({ message: "Materia no encontrada" });
+        res.json({ message: "Materia eliminada correctamente" });
+    });
+};
+
+// --- ACTIVIDADES EXTRACURRICULARES ---
+// Lista las actividades con la cantidad de inscriptos (para mostrar cupo disponible).
+exports.getActividades = (req, res) => {
+    const query = `
+        SELECT actividades_extra.*,
+               (SELECT COUNT(*) FROM inscripciones_extra WHERE actividad_id = actividades_extra.id) as inscriptos
+        FROM actividades_extra
+        ORDER BY tipo, nombre
+    `;
+    db.all(query, [], (err, rows) => {
+        if (err) return res.status(500).json({ message: err.message });
+        res.json(rows);
+    });
+};
+
+exports.createActividad = (req, res) => {
+    const nombre = (req.body.nombre || '').trim();
+    const { tipo, horario, cupo_max } = req.body;
+    if (!nombre || !tipo || !cupo_max) {
+        return res.status(400).json({ message: "Nombre, tipo y cupo son obligatorios" });
+    }
+    db.run(
+        "INSERT INTO actividades_extra (nombre, tipo, horario, cupo_max) VALUES (?, ?, ?, ?)",
+        [nombre, tipo, horario || null, cupo_max],
+        function(err) {
+            if (err) return res.status(500).json({ message: err.message });
+            res.status(201).json({ id: this.lastID });
+        }
+    );
+};
+
+exports.deleteActividad = (req, res) => {
+    const { id } = req.params;
+    db.run("DELETE FROM actividades_extra WHERE id = ?", [id], function(err) {
+        if (err) return res.status(500).json({ message: err.message });
+        if (this.changes === 0) return res.status(404).json({ message: "Actividad no encontrada" });
+        res.json({ message: "Actividad eliminada correctamente" });
+    });
+};
+
+// El alumno se inscribe a una actividad. Valida cupo y que no se inscriba dos veces.
+// La inscripción se guarda contra el usuario logueado (req.user.id).
+exports.inscribirActividad = (req, res) => {
+    const actividad_id = parseInt(req.body.actividad_id);
+    const alumno_id = req.user.id;
+    if (!actividad_id) return res.status(400).json({ message: "Actividad inválida" });
+
+    db.get("SELECT cupo_max FROM actividades_extra WHERE id = ?", [actividad_id], (err, actividad) => {
+        if (err) return res.status(500).json({ message: err.message });
+        if (!actividad) return res.status(404).json({ message: "La actividad no existe" });
+
+        db.get(
+            "SELECT COUNT(*) as total FROM inscripciones_extra WHERE actividad_id = ?",
+            [actividad_id],
+            (err, row) => {
+                if (err) return res.status(500).json({ message: err.message });
+                if (row.total >= actividad.cupo_max) {
+                    return res.status(400).json({ message: "No hay cupos disponibles en esta actividad" });
+                }
+
+                db.get(
+                    "SELECT id FROM inscripciones_extra WHERE actividad_id = ? AND alumno_id = ?",
+                    [actividad_id, alumno_id],
+                    (err, existe) => {
+                        if (err) return res.status(500).json({ message: err.message });
+                        if (existe) return res.status(400).json({ message: "Ya estás inscripto en esta actividad" });
+
+                        db.run(
+                            "INSERT INTO inscripciones_extra (alumno_id, actividad_id) VALUES (?, ?)",
+                            [alumno_id, actividad_id],
+                            function(err) {
+                                if (err) return res.status(500).json({ message: err.message });
+                                res.status(201).json({ message: "Inscripción realizada con éxito", id: this.lastID });
+                            }
+                        );
+                    }
+                );
+            }
+        );
+    });
+};
+
+// Lista las actividades en las que está inscripto el alumno logueado.
+exports.getMisInscripciones = (req, res) => {
+    const query = `
+        SELECT inscripciones_extra.id as inscripcion_id, actividades_extra.*
+        FROM inscripciones_extra
+        JOIN actividades_extra ON inscripciones_extra.actividad_id = actividades_extra.id
+        WHERE inscripciones_extra.alumno_id = ?
+        ORDER BY actividades_extra.tipo, actividades_extra.nombre
+    `;
+    db.all(query, [req.user.id], (err, rows) => {
+        if (err) return res.status(500).json({ message: err.message });
+        res.json(rows);
+    });
+};
+
+// El alumno cancela su inscripción a una actividad.
+exports.desinscribirActividad = (req, res) => {
+    const { actividad_id } = req.params;
+    db.run(
+        "DELETE FROM inscripciones_extra WHERE actividad_id = ? AND alumno_id = ?",
+        [actividad_id, req.user.id],
+        function(err) {
+            if (err) return res.status(500).json({ message: err.message });
+            if (this.changes === 0) return res.status(404).json({ message: "No estabas inscripto en esta actividad" });
+            res.json({ message: "Inscripción cancelada" });
+        }
+    );
 };
 
 // --- MIS HIJOS (para rol padre) ---
