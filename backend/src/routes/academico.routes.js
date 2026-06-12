@@ -23,7 +23,7 @@ router.post('/materias', authMiddleware(['admin']), academicoController.createMa
 router.delete('/materias/:id', authMiddleware(['admin']), academicoController.deleteMateria);
 
 // Actividades extracurriculares (deportivas/culturales)
-router.get('/actividades', authMiddleware(['admin', 'alumno']), academicoController.getActividades);
+router.get('/actividades', authMiddleware(['admin', 'alumno', 'docente']), academicoController.getActividades);
 router.post('/actividades', authMiddleware(['admin']), academicoController.createActividad);
 router.delete('/actividades/:id', authMiddleware(['admin']), academicoController.deleteActividad);
 router.get('/mis-inscripciones', authMiddleware(['alumno']), academicoController.getMisInscripciones);
@@ -36,5 +36,16 @@ router.delete('/desvincular-hijo/:id', authMiddleware(['padre']), academicoContr
 
 router.post('/asistencias', authMiddleware(['docente']), academicoController.registrarAsistencia);
 router.post('/calificaciones', authMiddleware(['docente']), academicoController.cargarCalificacion);
+
+// Docentes y Horarios (asignación docente↔materia con validación de superposición)
+router.get('/docentes', authMiddleware(['admin', 'docente']), academicoController.getDocentes);
+router.get('/horarios', authMiddleware(['admin', 'docente']), academicoController.getHorarios);
+router.post('/horarios', authMiddleware(['admin']), academicoController.createHorario);
+router.delete('/horarios/:id', authMiddleware(['admin']), academicoController.deleteHorario);
+
+// Asistencia y notas de actividades extracurriculares (profesores de actividades/idiomas)
+router.get('/actividades/:actividad_id/inscriptos', authMiddleware(['admin', 'docente']), academicoController.getInscriptosActividad);
+router.post('/actividades/asistencia', authMiddleware(['docente']), academicoController.registrarAsistenciaActividad);
+router.post('/actividades/calificacion', authMiddleware(['docente']), academicoController.cargarCalificacionActividad);
 
 module.exports = router;

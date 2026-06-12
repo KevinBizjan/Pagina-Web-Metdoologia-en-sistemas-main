@@ -11,12 +11,46 @@ const PadreDashboard = () => {
     const [saldoTotal, setSaldoTotal] = useState(0);
     const [disponibles, setDisponibles] = useState([]);
     const [alumnoSel, setAlumnoSel] = useState('');
+    const [pagos, setPagos] = useState([]);
 
     useEffect(() => {
         fetchNotificaciones();
         fetchHijosYSaldos();
         fetchDisponibles();
+        fetchPagos();
     }, []);
+
+    const fetchPagos = async () => {
+        try {
+            const response = await apiFetch('http://localhost:3000/api/financiero/pagos');
+            if (response.ok) setPagos(await response.json());
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    // Descarga el comprobante de pago en PDF (solo lectura, de los hijos vinculados).
+    const descargarComprobante = async (pagoId) => {
+        try {
+            const response = await apiFetch(`http://localhost:3000/api/financiero/comprobante/${pagoId}`);
+            if (!response.ok) {
+                const d = await response.json().catch(() => ({}));
+                return alert(d.message || 'No se pudo generar el comprobante');
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `comprobante_pago_${pagoId}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error(error);
+            alert('Error al descargar el comprobante');
+        }
+    };
 
     const fetchDisponibles = async () => {
         try {
@@ -341,6 +375,26 @@ const PadreDashboard = () => {
                             className="btn btn-hero-outline"
                             style={{ width: '100%', marginTop: '20px', fontSize: '0.8rem', color: 'var(--blue)', borderColor: 'var(--blue)' }}
                         >📥 Imprimir / Guardar como PDF</button>
+
+                        <div style={{ marginTop: '24px' }}>
+                            <span style={labelStyle}>Comprobantes de Pago</span>
+                            {pagos.length === 0 ? (
+                                <p style={{ fontSize: '0.8rem', color: '#64748b', padding: '8px 0' }}>
+                                    Todavía no hay pagos registrados.
+                                </p>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                                    {pagos.map(p => (
+                                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                            <span>
+                                                {p.fecha_pago ? new Date(p.fecha_pago).toLocaleDateString('es-AR') : '-'} · {p.alumno_apellido}, {p.alumno_nombre} · <strong>${Number(p.monto_pagado).toFixed(2)}</strong>
+                                            </span>
+                                            <button onClick={() => descargarComprobante(p.id)} style={{ background: 'none', border: 'none', color: 'var(--blue)', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>📄 PDF</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 

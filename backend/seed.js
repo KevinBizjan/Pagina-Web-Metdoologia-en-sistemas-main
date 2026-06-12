@@ -30,6 +30,23 @@ async function seed() {
         aulas.forEach(a => stmtAul.run(a));
         stmtAul.finalize();
 
+        // Instalaciones agendables (pileta, gimnasio, laboratorios).
+        // Se siembran solo si la tabla está vacía para no duplicar en re-ejecuciones.
+        db.get("SELECT COUNT(*) as count FROM instalaciones", (err, row) => {
+            if (!err && row && row.count === 0) {
+                const instalaciones = [
+                    ['Pileta', 'Pileta climatizada para clases de natación'],
+                    ['Gimnasio', 'Gimnasio cubierto para educación física y deportes'],
+                    ['Laboratorio de Ciencias', 'Laboratorio equipado para física, química y biología'],
+                    ['Laboratorio de Informática', 'Sala de computación con equipamiento actualizado']
+                ];
+                const stmtInst = db.prepare(`INSERT INTO instalaciones (nombre, descripcion) VALUES (?, ?)`);
+                instalaciones.forEach(i => stmtInst.run(i));
+                stmtInst.finalize();
+                console.log('Instalaciones iniciales creadas.');
+            }
+        });
+
         console.log('Datos académicos iniciales creados.');
     });
 }

@@ -10,6 +10,9 @@ const DocenteDashboard = () => {
     const [, setLoading] = useState(true);
     const [aviso, setAviso] = useState('');
     const [instalaciones, setInstalaciones] = useState([]);
+    const [actividades, setActividades] = useState([]);
+    const [actividadSel, setActividadSel] = useState('');
+    const [inscriptos, setInscriptos] = useState([]);
 
     // Modales servicios
     const [modal, setModal] = useState(null); // 'incidencia' | 'comedor' | 'reserva' | null
@@ -18,7 +21,73 @@ const DocenteDashboard = () => {
         fetchAlumnos();
         fetchMaterias();
         fetchInstalaciones();
+        fetchActividades();
     }, []);
+
+    useEffect(() => {
+        if (actividadSel) fetchInscriptos(actividadSel);
+        else setInscriptos([]);
+    }, [actividadSel]);
+
+    const fetchActividades = async () => {
+        try {
+            const response = await apiFetch('http://localhost:3000/api/academico/actividades');
+            if (response.ok) {
+                const data = await response.json();
+                setActividades(data);
+                if (data.length > 0) setActividadSel(String(data[0].id));
+            }
+        } catch (error) {
+            console.error('Error actividades:', error);
+        }
+    };
+
+    const fetchInscriptos = async (actId) => {
+        try {
+            const response = await apiFetch(`http://localhost:3000/api/academico/actividades/${actId}/inscriptos`);
+            if (response.ok) {
+                const data = await response.json();
+                setInscriptos(data.map(i => ({ ...i, asistencia: 'Presente', notaTmp: '' })));
+            }
+        } catch (error) {
+            console.error('Error inscriptos:', error);
+        }
+    };
+
+    const handleAsistActChange = (alumnoId, estado) => {
+        setInscriptos(inscriptos.map(i => i.alumno_id === alumnoId ? { ...i, asistencia: estado } : i));
+    };
+
+    const handleNotaActChange = (alumnoId, nota) => {
+        const val = parseInt(nota);
+        if (nota !== '' && (val < 1 || val > 10)) return;
+        setInscriptos(inscriptos.map(i => i.alumno_id === alumnoId ? { ...i, notaTmp: nota } : i));
+    };
+
+    const saveAsistenciaActividad = async (alumnoId, estado) => {
+        try {
+            const r = await apiFetch('http://localhost:3000/api/academico/actividades/asistencia', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ actividad_id: parseInt(actividadSel), alumno_id: alumnoId, estado })
+            });
+            if (r.ok) alert('Asistencia registrada');
+            else { const d = await r.json().catch(() => ({})); alert(d.message || 'Error al registrar asistencia'); }
+        } catch (err) { console.error(err); alert('Error de conexión'); }
+    };
+
+    const saveNotaActividad = async (alumnoId, nota) => {
+        if (!nota) return alert('Ingrese una nota');
+        try {
+            const r = await apiFetch('http://localhost:3000/api/academico/actividades/calificacion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ actividad_id: parseInt(actividadSel), alumno_id: alumnoId, nota })
+            });
+            if (r.ok) { alert('Calificación guardada'); fetchInscriptos(actividadSel); }
+            else { const d = await r.json().catch(() => ({})); alert(d.message || 'Error al guardar la calificación'); }
+        } catch (err) { console.error(err); alert('Error de conexión'); }
+    };
 
     const fetchAlumnos = async () => {
         try {
@@ -367,6 +436,78 @@ const DocenteDashboard = () => {
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                             <button onClick={publicarAviso} className="btn btn-violet" style={{ padding: '12px 28px' }}>Publicar Aviso →</button>
                         </div>
+                    </div>
+                </div>
+
+                {/* Actividades Extracurriculares / Idiomas */}
+                <div className="dashboard-card" style={{ ...cardStyle, gridColumn: '1 / -1' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #f1f5f9', paddingBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
+                        <h3 style={{ fontSize: '1.1rem', color: 'var(--blue)', fontWeight: 800 }}>🎯 Actividades / Idiomas</h3>
+                        <select
+                            value={actividadSel}
+                            onChange={(e) => setActividadSel(e.target.value)}
+                            style={{ padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}
+                        >
+                            {actividades.length === 0 ? (
+                                <option value="">No hay actividades</option>
+                            ) : (
+                                actividades.map(a => <option key={a.id} value={a.id}>{a.nombre} ({a.tipo})</option>)
+                            )}
+                        </select>
+                    </div>
+
+                    <div style={{ marginTop: '20px' }}>
+                        {inscriptos.length === 0 ? (
+                            <p style={{ fontSize: '0.85rem', color: '#64748b', padding: '12px 0' }}>
+                                No hay inscriptos en esta actividad todavía.
+                            </p>
+                        ) : (
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ textAlign: 'left', fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>
+                                        <th style={{ padding: '10px 0' }}>Inscripto</th>
+                                        <th>Asistencia</th>
+                                        <th>Nota (1-10)</th>
+                                        <th style={{ textAlign: 'right' }}>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {inscriptos.map((i) => (
+                                        <tr key={i.alumno_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '12px 0', fontWeight: 700, fontSize: '0.9rem' }}>
+                                                {i.alumno_nombre}
+                                                {i.ultima_nota != null && (
+                                                    <span style={{ marginLeft: '8px', fontSize: '0.7rem', background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '50px', fontWeight: 800 }}>Última: {i.ultima_nota}</span>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <select
+                                                    value={i.asistencia}
+                                                    onChange={(e) => handleAsistActChange(i.alumno_id, e.target.value)}
+                                                    style={{ padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.85rem', background: i.asistencia === 'Presente' ? '#f0fdf4' : '#fef2f2' }}
+                                                >
+                                                    <option value="Presente">Presente</option>
+                                                    <option value="Ausente">Ausente</option>
+                                                    <option value="Tarde">Tarde</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input
+                                                    type="number" min="1" max="10"
+                                                    value={i.notaTmp}
+                                                    onChange={(e) => handleNotaActChange(i.alumno_id, e.target.value)}
+                                                    style={{ width: '50px', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, backgroundColor: getNotaColor(i.notaTmp) }}
+                                                />
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <button onClick={() => saveAsistenciaActividad(i.alumno_id, i.asistencia)} style={{ background: 'none', border: 'none', color: 'var(--green)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', marginRight: '10px' }}>Asist.</button>
+                                                <button onClick={() => saveNotaActividad(i.alumno_id, i.notaTmp)} style={{ background: 'none', border: 'none', color: 'var(--blue)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}>Nota</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
                 </div>
 

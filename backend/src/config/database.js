@@ -268,6 +268,28 @@ function initializeDatabase() {
             leido BOOLEAN DEFAULT 0,
             fecha_envio DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
+
+        // Asistencia a actividades extracurriculares (profesores de actividades/idiomas)
+        db.run(`CREATE TABLE IF NOT EXISTS actividad_asistencias (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            actividad_id INTEGER,
+            alumno_id INTEGER,
+            fecha DATE DEFAULT CURRENT_DATE,
+            estado TEXT CHECK( estado IN ('Presente', 'Ausente', 'Tarde') ),
+            FOREIGN KEY(actividad_id) REFERENCES actividades_extra(id),
+            FOREIGN KEY(alumno_id) REFERENCES alumnos(id)
+        )`);
+
+        // Calificaciones de actividades extracurriculares (1 a 10)
+        db.run(`CREATE TABLE IF NOT EXISTS actividad_calificaciones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            actividad_id INTEGER,
+            alumno_id INTEGER,
+            nota INTEGER CHECK( nota >= 1 AND nota <= 10 ),
+            fecha DATE DEFAULT CURRENT_DATE,
+            FOREIGN KEY(actividad_id) REFERENCES actividades_extra(id),
+            FOREIGN KEY(alumno_id) REFERENCES alumnos(id)
+        )`);
     });
 }
 

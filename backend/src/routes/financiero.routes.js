@@ -13,6 +13,8 @@ router.post('/cuotas-config', authMiddleware(['admin']), financieroController.cr
 router.delete('/cuotas-config/:id', authMiddleware(['admin']), financieroController.deleteCuotaConfig);
 
 router.post('/pagos', authMiddleware(['admin']), financieroController.registrarPago);
+router.get('/pagos', authMiddleware(['admin', 'padre']), financieroController.getPagos);
+router.get('/comprobante/:pago_id', authMiddleware(['admin', 'padre']), financieroController.generarComprobante);
 router.get('/saldo/:alumno_id', authMiddleware(['admin', 'padre']), financieroController.getSaldoAlumno);
 router.get('/deudores', authMiddleware(['admin']), financieroController.getDeudores);
 

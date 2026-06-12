@@ -18,23 +18,120 @@ const AdminDashboard = () => {
     const [padres, setPadres] = useState([]);
 
     const [rutasTransporte, setRutasTransporte] = useState([]);
-    const [instalaciones, setInstalaciones] = useState([]);
     const [cuotasConfig, setCuotasConfig] = useState([]);
     const [reportesStats, setReportesStats] = useState(null);
     const [materias, setMaterias] = useState([]);
     const [actividades, setActividades] = useState([]);
+    const [horarios, setHorarios] = useState([]);
+    const [docentes, setDocentes] = useState([]);
+    const [academicoSub, setAcademicoSub] = useState('cursos');
+    const [usuarios, setUsuarios] = useState([]);
+    const [pagos, setPagos] = useState([]);
 
     useEffect(() => {
         if (activeTab === 'preinscripciones') fetchPreinscripciones();
-        if (activeTab === 'alumnos') { fetchAlumnos(); fetchCursosYAulas(); fetchPadres(); }
-        if (activeTab === 'cursos') { fetchCursosYAulas(); fetchNiveles(); }
+        if (activeTab === 'alumnos') { fetchAlumnos(); fetchCursosYAulas(); }
+        if (activeTab === 'academico') {
+            fetchCursosYAulas(); fetchNiveles(); fetchMaterias();
+            fetchActividades(); fetchHorarios(); fetchDocentes();
+        }
         if (activeTab === 'personal') fetchPersonal();
-        if (activeTab === 'finanzas') { fetchFinanzas(); fetchNiveles(); fetchAlumnos(); }
+        if (activeTab === 'finanzas') { fetchFinanzas(); fetchNiveles(); fetchAlumnos(); fetchPagos(); }
         if (activeTab === 'servicios') fetchServicios();
         if (activeTab === 'reportes') fetchReportesStats();
-        if (activeTab === 'materias') { fetchMaterias(); fetchCursosYAulas(); }
-        if (activeTab === 'actividades') fetchActividades();
+        if (activeTab === 'usuarios') fetchUsuarios();
     }, [activeTab]);
+
+    const fetchUsuarios = async () => {
+        try {
+            const response = await apiFetch('http://localhost:3000/api/auth/users');
+            if (response.ok) setUsuarios(await response.json());
+        } catch (error) {
+            console.error('Error usuarios:', error);
+        }
+    };
+
+    const handleUserSubmit = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const datos = {
+            nombre: form.nombre.value,
+            username: form.username.value,
+            password: form.password.value,
+            rol: form.rol.value
+        };
+        const response = await apiFetch('http://localhost:3000/api/auth/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+        if (response.ok) { form.reset(); fetchUsuarios(); }
+        else { const d = await response.json(); alert(d.message || 'Error al crear el usuario'); }
+    };
+
+    const updateUserRol = async (id, rol) => {
+        const response = await apiFetch(`http://localhost:3000/api/auth/users/${id}/rol`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rol })
+        });
+        if (response.ok) fetchUsuarios();
+        else { const d = await response.json(); alert(d.message || 'Error al cambiar el rol'); }
+    };
+
+    const deleteUsuario = async (id) => {
+        if (!window.confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
+        const response = await apiFetch(`http://localhost:3000/api/auth/users/${id}`, { method: 'DELETE' });
+        if (response.ok) fetchUsuarios();
+        else { const d = await response.json(); alert(d.message || 'Error al eliminar el usuario'); }
+    };
+
+    const fetchHorarios = async () => {
+        try {
+            const response = await apiFetch('http://localhost:3000/api/academico/horarios');
+            if (response.ok) setHorarios(await response.json());
+        } catch (error) {
+            console.error('Error horarios:', error);
+        }
+    };
+
+    const fetchDocentes = async () => {
+        try {
+            const response = await apiFetch('http://localhost:3000/api/academico/docentes');
+            if (response.ok) setDocentes(await response.json());
+        } catch (error) {
+            console.error('Error docentes:', error);
+        }
+    };
+
+    const handleHorarioSubmit = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const datos = {
+            materia_id: form.materia_id.value,
+            docente_id: form.docente_id.value,
+            aula_id: form.aula_id.value,
+            dia_semana: form.dia_semana.value,
+            hora_inicio: form.hora_inicio.value,
+            hora_fin: form.hora_fin.value
+        };
+        if (!datos.materia_id || !datos.docente_id || !datos.aula_id || !datos.dia_semana) {
+            return alert('Completá materia, docente, aula y día.');
+        }
+        const response = await apiFetch('http://localhost:3000/api/academico/horarios', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+        if (response.ok) { form.reset(); fetchHorarios(); }
+        else { const d = await response.json(); alert(d.message || 'Error al crear el horario'); }
+    };
+
+    const deleteHorario = async (id) => {
+        if (!window.confirm('¿Eliminar este horario?')) return;
+        const response = await apiFetch(`http://localhost:3000/api/academico/horarios/${id}`, { method: 'DELETE' });
+        if (response.ok) fetchHorarios();
+    };
 
     const fetchMaterias = async () => {
         try {
@@ -173,6 +270,34 @@ const AdminDashboard = () => {
         } catch (e) { console.error(e); alert('Error al exportar.'); }
     };
 
+    const exportReporteAcademico = async () => {
+        try {
+            const r = await apiFetch('http://localhost:3000/api/comunicacion/reportes/academico');
+            if (!r.ok) return alert('No se pudo obtener el reporte académico.');
+            const data = await r.json();
+            if (data.length === 0) return alert('No hay calificaciones registradas.');
+            exportCSV(
+                `reporte_academico_${new Date().toISOString().slice(0,10)}.csv`,
+                ['Apellido', 'Nombre', 'DNI', 'Nivel', 'División', 'Materia', 'Nota', 'Trimestre'],
+                data.map(d => [d.apellido, d.nombre, d.dni, d.nivel_nombre || '', d.division || '', d.materia_nombre || '', d.nota, d.trimestre])
+            );
+        } catch (e) { console.error(e); alert('Error al exportar.'); }
+    };
+
+    const exportReporteFinanciero = async () => {
+        try {
+            const r = await apiFetch('http://localhost:3000/api/comunicacion/reportes/financiero');
+            if (!r.ok) return alert('No se pudo obtener el reporte financiero.');
+            const data = await r.json();
+            if (data.length === 0) return alert('No hay pagos registrados.');
+            exportCSV(
+                `reporte_financiero_${new Date().toISOString().slice(0,10)}.csv`,
+                ['Fecha', 'Apellido', 'Nombre', 'DNI', 'Monto Pagado', 'Método', 'Saldo Pendiente'],
+                data.map(d => [d.fecha_pago, d.apellido, d.nombre, d.dni, d.monto_pagado, d.metodo_pago || '', d.saldo_pendiente])
+            );
+        } catch (e) { console.error(e); alert('Error al exportar.'); }
+    };
+
     const exportPlanillaAsistencia = async () => {
         let data = alumnos;
         if (!data || data.length === 0) {
@@ -202,12 +327,8 @@ const AdminDashboard = () => {
     const fetchServicios = async () => {
         try {
             const token = localStorage.getItem('token');
-            const [resTrans, resInst] = await Promise.all([
-                fetch('http://localhost:3000/api/servicios/transporte/rutas', { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch('http://localhost:3000/api/servicios/instalaciones', { headers: { 'Authorization': `Bearer ${token}` } })
-            ]);
+            const resTrans = await fetch('http://localhost:3000/api/servicios/transporte/rutas', { headers: { 'Authorization': `Bearer ${token}` } });
             if (resTrans.ok) setRutasTransporte(await resTrans.json());
-            if (resInst.ok) setInstalaciones(await resInst.json());
         } catch (error) { console.error(error); }
     };
 
@@ -524,6 +645,33 @@ const AdminDashboard = () => {
         } catch (error) { console.error(error); }
     };
 
+    const fetchPagos = async () => {
+        try {
+            const response = await apiFetch('http://localhost:3000/api/financiero/pagos');
+            if (response.ok) setPagos(await response.json());
+        } catch (error) { console.error('Error pagos:', error); }
+    };
+
+    // Descarga el comprobante de pago en PDF (se solicita con el token y se guarda como archivo).
+    const descargarComprobante = async (pagoId) => {
+        try {
+            const response = await apiFetch(`http://localhost:3000/api/financiero/comprobante/${pagoId}`);
+            if (!response.ok) {
+                const d = await response.json().catch(() => ({}));
+                return alert(d.message || 'No se pudo generar el comprobante');
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `comprobante_pago_${pagoId}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (error) { console.error(error); alert('Error al descargar el comprobante'); }
+    };
+
     const handlePagoSubmit = async (e) => {
         e.preventDefault();
         const form = e.target;
@@ -542,30 +690,15 @@ const AdminDashboard = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(pagoData)
             });
-            if (response.ok) { form.reset(); alert('Pago registrado correctamente.'); }
+            if (response.ok) {
+                const data = await response.json().catch(() => ({}));
+                form.reset();
+                fetchPagos();
+                if (data.pago_id && window.confirm('Pago registrado correctamente.\n¿Descargar el comprobante en PDF?')) {
+                    descargarComprobante(data.pago_id);
+                }
+            }
             else { const d = await response.json().catch(() => ({})); alert(d.message || 'Error al registrar el pago'); }
-        } catch (error) { console.error(error); alert('Error de conexión'); }
-    };
-
-    const handleReservaSubmit = async (e) => {
-        e.preventDefault();
-        const form = e.target;
-        const data = {
-            instalacion_id: parseInt(form.instalacion_id.value),
-            fecha: form.fecha.value,
-            hora_inicio: form.hora_inicio.value,
-            hora_fin: form.hora_fin.value,
-            motivo: form.motivo.value,
-            reservado_por: JSON.parse(localStorage.getItem('user') || '{}').id || null
-        };
-        try {
-            const response = await apiFetch('http://localhost:3000/api/servicios/instalaciones/reservar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            if (response.ok) { form.reset(); alert('Reserva confirmada.'); }
-            else { const d = await response.json().catch(() => ({})); alert(d.message || 'Error al reservar'); }
         } catch (error) { console.error(error); alert('Error de conexión'); }
     };
 
@@ -634,12 +767,12 @@ const AdminDashboard = () => {
                 >
                     🎒 Legajos Alumnos
                 </button>
-                <button 
-                    onClick={() => setActiveTab('cursos')} 
-                    className={`btn ${activeTab === 'cursos' ? 'btn-violet' : 'btn-hero-outline'}`}
-                    style={{ fontSize: '0.8rem', color: activeTab === 'cursos' ? 'white' : 'var(--blue)' }}
+                <button
+                    onClick={() => setActiveTab('academico')}
+                    className={`btn ${activeTab === 'academico' ? 'btn-violet' : 'btn-hero-outline'}`}
+                    style={{ fontSize: '0.8rem', color: activeTab === 'academico' ? 'white' : 'var(--blue)' }}
                 >
-                    🏫 Cursos y Aulas
+                    📚 Gestión Académica
                 </button>
                 <button 
                     onClick={() => setActiveTab('personal')} 
@@ -663,18 +796,11 @@ const AdminDashboard = () => {
                     🔧 Servicios
                 </button>
                 <button
-                    onClick={() => setActiveTab('materias')}
-                    className={`btn ${activeTab === 'materias' ? 'btn-violet' : 'btn-hero-outline'}`}
-                    style={{ fontSize: '0.8rem', color: activeTab === 'materias' ? 'white' : 'var(--blue)' }}
+                    onClick={() => setActiveTab('usuarios')}
+                    className={`btn ${activeTab === 'usuarios' ? 'btn-violet' : 'btn-hero-outline'}`}
+                    style={{ fontSize: '0.8rem', color: activeTab === 'usuarios' ? 'white' : 'var(--blue)' }}
                 >
-                    📚 Materias
-                </button>
-                <button
-                    onClick={() => setActiveTab('actividades')}
-                    className={`btn ${activeTab === 'actividades' ? 'btn-violet' : 'btn-hero-outline'}`}
-                    style={{ fontSize: '0.8rem', color: activeTab === 'actividades' ? 'white' : 'var(--blue)' }}
-                >
-                    🎭 Actividades
+                    👤 Usuarios y Roles
                 </button>
                 <button
                     onClick={() => setActiveTab('reportes')}
@@ -789,12 +915,6 @@ const AdminDashboard = () => {
                                     <option key={c.id} value={c.id}>{c.nivel_nombre} - {c.division}</option>
                                 ))}
                             </select>
-                            <select style={inputStyle} name="tutor_id" defaultValue={editingAlumno?.tutor_id || ''}>
-                                <option value="">Vincular Tutor (Opcional)</option>
-                                {padres.map(p => (
-                                    <option key={p.id} value={p.id}>{p.nombre} ({p.username})</option>
-                                ))}
-                            </select>
                             <button type="submit" className="btn btn-violet" style={{ height: '45px' }}>
                                 {editingAlumno ? 'Guardar Cambios' : 'Registrar Legajo'}
                             </button>
@@ -850,7 +970,27 @@ const AdminDashboard = () => {
                 </div>
             )}
 
-            {activeTab === 'cursos' && (
+            {activeTab === 'academico' && (
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                    {[
+                        { key: 'cursos', label: '🏫 Cursos y Aulas' },
+                        { key: 'materias', label: '📖 Materias' },
+                        { key: 'horarios', label: '🕐 Horarios' },
+                        { key: 'actividades', label: '🎭 Actividades' }
+                    ].map(s => (
+                        <button
+                            key={s.key}
+                            onClick={() => setAcademicoSub(s.key)}
+                            className={`btn ${academicoSub === s.key ? 'btn-green' : 'btn-hero-outline'}`}
+                            style={{ fontSize: '0.78rem', padding: '8px 14px', color: academicoSub === s.key ? 'white' : 'var(--blue)' }}
+                        >
+                            {s.label}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {activeTab === 'academico' && academicoSub === 'cursos' && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                     <div style={{ background: 'var(--white)', padding: '24px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -1104,14 +1244,43 @@ const AdminDashboard = () => {
                                     )}
                                 </tbody>
                         </table>
+
+                        <h2 style={{ fontSize: '1.25rem', color: 'var(--blue)', fontWeight: 800, margin: '32px 0 16px' }}>Pagos Registrados</h2>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
+                                    <th style={thStyle}>Fecha</th>
+                                    <th style={thStyle}>Alumno</th>
+                                    <th style={thStyle}>Monto</th>
+                                    <th style={thStyle}>Comprobante</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {pagos.length === 0 ? (
+                                    <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No hay pagos registrados.</td></tr>
+                                ) : (
+                                    pagos.map(p => (
+                                        <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={tdStyle}>{p.fecha_pago ? new Date(p.fecha_pago).toLocaleDateString('es-AR') : '-'}</td>
+                                            <td style={tdStyle}>{p.alumno_apellido}, {p.alumno_nombre}</td>
+                                            <td style={tdStyle}><strong>${Number(p.monto_pagado).toFixed(2)}</strong></td>
+                                            <td style={tdStyle}>
+                                                <button onClick={() => descargarComprobante(p.id)} style={{ background: 'none', border: 'none', color: 'var(--blue)', fontWeight: 700, cursor: 'pointer' }}>📄 Descargar PDF</button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             )}
 
             {activeTab === 'servicios' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
                     <div style={{ background: 'var(--white)', padding: '24px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
                         <h2 style={{ fontSize: '1.25rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '24px' }}>Rutas de Transporte</h2>
+                        <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '16px' }}>El agendamiento de instalaciones (pileta, gimnasio, laboratorios) se gestiona desde el panel docente.</p>
                         <form onSubmit={handleRutaSubmit} style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
                             <input type="text" name="nombre" placeholder="Nombre Ruta" required style={inputStyle} />
                             <input type="text" name="chofer" placeholder="Chofer" required style={inputStyle} />
@@ -1144,41 +1313,6 @@ const AdminDashboard = () => {
                                 )}
                             </tbody>
                         </table>
-                    </div>
-
-                    <div style={{ background: 'var(--white)', padding: '24px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
-                        <h2 style={{ fontSize: '1.25rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '24px' }}>Reserva de Instalaciones</h2>
-                        <form onSubmit={handleReservaSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <div>
-                                <label style={labelStyle}>Instalación</label>
-                                <select name="instalacion_id" required style={inputStyle}>
-                                    <option value="">Seleccionar Instalación</option>
-                                    {instalaciones.map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
-                                </select>
-                                {instalaciones.length === 0 && (
-                                    <p style={{ fontSize: '0.75rem', color: '#991b1b', marginTop: '6px' }}>No hay instalaciones cargadas en la base de datos.</p>
-                                )}
-                            </div>
-                            <div>
-                                <label style={labelStyle}>Fecha</label>
-                                <input type="date" name="fecha" required style={inputStyle} />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                <div>
-                                    <label style={labelStyle}>Hora Inicio</label>
-                                    <input type="time" name="hora_inicio" required style={inputStyle} />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Hora Fin</label>
-                                    <input type="time" name="hora_fin" required style={inputStyle} />
-                                </div>
-                            </div>
-                            <div>
-                                <label style={labelStyle}>Motivo</label>
-                                <input name="motivo" required placeholder="Motivo de la reserva" style={inputStyle} />
-                            </div>
-                            <button type="submit" className="btn btn-violet" style={{ padding: '14px' }}>Verificar y Reservar</button>
-                        </form>
                     </div>
                 </div>
             )}
@@ -1215,6 +1349,8 @@ const AdminDashboard = () => {
                     <div style={{ background: 'var(--white)', padding: '24px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
                         <h2 style={{ fontSize: '1.1rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '20px' }}>📋 Listados Disponibles</h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <button onClick={exportReporteAcademico} className="btn btn-hero-outline" style={{ fontSize: '0.85rem', textAlign: 'left', color: 'var(--blue)', borderColor: 'var(--blue)' }}>📄 Reporte Académico - Calificaciones (CSV)</button>
+                            <button onClick={exportReporteFinanciero} className="btn btn-hero-outline" style={{ fontSize: '0.85rem', textAlign: 'left', color: 'var(--blue)', borderColor: 'var(--blue)' }}>📄 Reporte Financiero - Pagos (CSV)</button>
                             <button onClick={exportDeudores} className="btn btn-hero-outline" style={{ fontSize: '0.85rem', textAlign: 'left', color: 'var(--blue)', borderColor: 'var(--blue)' }}>📄 Listado de Deudores (CSV)</button>
                             <button onClick={exportPlanillaAsistencia} className="btn btn-hero-outline" style={{ fontSize: '0.85rem', textAlign: 'left', color: 'var(--blue)', borderColor: 'var(--blue)' }}>📄 Planilla de Asistencia (CSV)</button>
                             <button onClick={exportLegajos} className="btn btn-hero-outline" style={{ fontSize: '0.85rem', textAlign: 'left', color: 'var(--blue)', borderColor: 'var(--blue)' }}>📄 Legajos de Alumnos (CSV)</button>
@@ -1223,7 +1359,7 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             )}
-            {activeTab === 'materias' && (
+            {activeTab === 'academico' && academicoSub === 'materias' && (
                 <div style={cardStyle}>
                     <h2 style={{ fontSize: '1.25rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '8px' }}>Materias por Curso</h2>
                     <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>
@@ -1271,7 +1407,7 @@ const AdminDashboard = () => {
                 </div>
             )}
 
-            {activeTab === 'actividades' && (
+            {activeTab === 'academico' && academicoSub === 'actividades' && (
                 <div style={cardStyle}>
                     <h2 style={{ fontSize: '1.25rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '8px' }}>Actividades Extracurriculares</h2>
                     <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>
@@ -1327,9 +1463,185 @@ const AdminDashboard = () => {
                     </table>
                 </div>
             )}
+
+            {activeTab === 'academico' && academicoSub === 'horarios' && (
+                <div style={cardStyle}>
+                    <h2 style={{ fontSize: '1.25rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '8px' }}>Horarios y Asignación de Docentes</h2>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>
+                        Asigná un docente y un aula a cada materia en una franja horaria. El sistema rechaza superposiciones del mismo docente o de la misma aula en el mismo día.
+                    </p>
+
+                    {docentes.length === 0 && (
+                        <p style={{ fontSize: '0.8rem', color: '#991b1b', marginBottom: '16px' }}>
+                            No hay docentes cargados. Agregá personal de tipo "Docente" en la pestaña Personal para poder asignarlos.
+                        </p>
+                    )}
+
+                    <form onSubmit={handleHorarioSubmit} style={{
+                        background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '24px',
+                        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', alignItems: 'end'
+                    }}>
+                        <div>
+                            <label style={labelStyle}>Materia</label>
+                            <select name="materia_id" required style={inputStyle} defaultValue="">
+                                <option value="">Seleccionar...</option>
+                                {materias.map(m => (
+                                    <option key={m.id} value={m.id}>{m.nombre}{m.nivel_nombre ? ` (${m.nivel_nombre} ${m.division})` : ''}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Docente</label>
+                            <select name="docente_id" required style={inputStyle} defaultValue="">
+                                <option value="">Seleccionar...</option>
+                                {docentes.map(d => (
+                                    <option key={d.id} value={d.id}>{d.apellido}, {d.nombre}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Aula</label>
+                            <select name="aula_id" required style={inputStyle} defaultValue="">
+                                <option value="">Seleccionar...</option>
+                                {aulas.map(a => (
+                                    <option key={a.id} value={a.id}>{a.nombre}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Día</label>
+                            <select name="dia_semana" required style={inputStyle} defaultValue="">
+                                <option value="">Seleccionar...</option>
+                                <option value="1">Lunes</option>
+                                <option value="2">Martes</option>
+                                <option value="3">Miércoles</option>
+                                <option value="4">Jueves</option>
+                                <option value="5">Viernes</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Hora Inicio</label>
+                            <input type="time" name="hora_inicio" required style={inputStyle} />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Hora Fin</label>
+                            <input type="time" name="hora_fin" required style={inputStyle} />
+                        </div>
+                        <button type="submit" className="btn btn-violet" style={{ whiteSpace: 'nowrap' }}>+ Asignar</button>
+                    </form>
+
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
+                                <th style={thStyle}>Día</th>
+                                <th style={thStyle}>Horario</th>
+                                <th style={thStyle}>Materia</th>
+                                <th style={thStyle}>Docente</th>
+                                <th style={thStyle}>Aula</th>
+                                <th style={thStyle}>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {horarios.length === 0 ? (
+                                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>No hay horarios asignados.</td></tr>
+                            ) : (
+                                horarios.map(h => (
+                                    <tr key={h.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                        <td style={tdStyle}>{DIAS_SEMANA[h.dia_semana] || h.dia_semana}</td>
+                                        <td style={tdStyle}>{h.hora_inicio} - {h.hora_fin}</td>
+                                        <td style={tdStyle}><strong>{h.materia_nombre || 'Sin materia'}</strong>{h.nivel_nombre ? <span style={{ color: '#64748b', fontSize: '0.8rem' }}> ({h.nivel_nombre} {h.division})</span> : null}</td>
+                                        <td style={tdStyle}>{h.docente_nombre || 'Sin docente'}</td>
+                                        <td style={tdStyle}>{h.aula_nombre || 'Sin aula'}</td>
+                                        <td style={tdStyle}>
+                                            <button onClick={() => deleteHorario(h.id)} style={{ background: 'none', border: 'none', color: '#dc2626', fontWeight: 700, cursor: 'pointer' }}>Eliminar</button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+            {activeTab === 'usuarios' && (
+                <div style={cardStyle}>
+                    <h2 style={{ fontSize: '1.25rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '8px' }}>Usuarios y Roles</h2>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>
+                        Creá cuentas de acceso y asigná su rol mediante la lista desplegable. El rol restringe a qué secciones del sistema puede ingresar cada usuario.
+                    </p>
+
+                    <form onSubmit={handleUserSubmit} style={{
+                        background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '24px',
+                        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', alignItems: 'end'
+                    }}>
+                        <div>
+                            <label style={labelStyle}>Nombre completo</label>
+                            <input type="text" name="nombre" placeholder="Nombre y Apellido" required style={inputStyle} />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Usuario / Correo</label>
+                            <input type="text" name="username" placeholder="usuario o correo" required style={inputStyle} />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Contraseña</label>
+                            <input type="password" name="password" placeholder="Mín. 6 caracteres" required style={inputStyle} />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Rol</label>
+                            <select name="rol" required style={inputStyle} defaultValue="">
+                                <option value="">Seleccionar...</option>
+                                <option value="admin">Administrador</option>
+                                <option value="docente">Docente</option>
+                                <option value="alumno">Alumno</option>
+                                <option value="padre">Padre/Tutor</option>
+                            </select>
+                        </div>
+                        <button type="submit" className="btn btn-violet" style={{ whiteSpace: 'nowrap' }}>+ Crear Usuario</button>
+                    </form>
+
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
+                                <th style={thStyle}>Nombre</th>
+                                <th style={thStyle}>Usuario</th>
+                                <th style={thStyle}>Rol</th>
+                                <th style={thStyle}>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {usuarios.length === 0 ? (
+                                <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No hay usuarios registrados.</td></tr>
+                            ) : (
+                                usuarios.map(u => (
+                                    <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                        <td style={tdStyle}><strong>{u.nombre}</strong></td>
+                                        <td style={tdStyle}>{u.username}</td>
+                                        <td style={tdStyle}>
+                                            <select
+                                                value={u.rol}
+                                                onChange={(e) => updateUserRol(u.id, e.target.value)}
+                                                style={{ padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontWeight: 700 }}
+                                            >
+                                                <option value="admin">Administrador</option>
+                                                <option value="docente">Docente</option>
+                                                <option value="alumno">Alumno</option>
+                                                <option value="padre">Padre/Tutor</option>
+                                            </select>
+                                        </td>
+                                        <td style={tdStyle}>
+                                            <button onClick={() => deleteUsuario(u.id)} style={{ background: 'none', border: 'none', color: '#dc2626', fontWeight: 700, cursor: 'pointer' }}>Eliminar</button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </DashboardLayout>
     );
 };
+
+const DIAS_SEMANA = { 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes' };
 
 const labelStyle = { display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' };
 

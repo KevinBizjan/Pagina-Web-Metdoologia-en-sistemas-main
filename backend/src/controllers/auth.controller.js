@@ -94,3 +94,76 @@ exports.getPadres = (req, res) => {
         res.json(rows);
     });
 };
+
+// --- GESTIÓN DE USUARIOS Y ROLES (solo admin) ---
+const ROLES_VALIDOS = ['admin', 'docente', 'alumno', 'padre'];
+
+exports.getUsers = (req, res) => {
+    db.all(`SELECT id, username, nombre, rol, created_at FROM users ORDER BY rol, nombre`, [], (err, rows) => {
+        if (err) return res.status(500).json({ message: err.message });
+        res.json(rows);
+    });
+};
+
+// Crea un usuario con el rol elegido por el administrador (lista desplegable en el front).
+exports.createUser = async (req, res) => {
+    const nombre = (req.body.nombre || '').trim().replace(/\s+/g, ' ');
+    const username = (req.body.username || '').trim().toLowerCase();
+    const password = req.body.password || '';
+    const rol = (req.body.rol || '').trim();
+
+    if (!nombre || !username || !password || !rol) {
+        return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+    }
+    if (!ROLES_VALIDOS.includes(rol)) {
+        return res.status(400).json({ message: 'Rol inválido' });
+    }
+    if (password.length < 6) {
+        return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    db.run(
+        `INSERT INTO users (username, password, nombre, rol) VALUES (?, ?, ?, ?)`,
+        [username, hashedPassword, nombre, rol],
+        function(err) {
+            if (err) {
+                if (err.message.includes('UNIQUE constraint failed')) {
+                    return res.status(400).json({ message: 'Ya existe un usuario con ese nombre de usuario/correo' });
+                }
+                return res.status(500).json({ message: 'Error al crear usuario', error: err.message });
+            }
+            res.status(201).json({ message: 'Usuario creado con éxito', id: this.lastID });
+        }
+    );
+};
+
+// Cambia el rol de un usuario existente (restricción de accesos).
+exports.updateUserRol = (req, res) => {
+    const { id } = req.params;
+    const rol = (req.body.rol || '').trim();
+    if (!ROLES_VALIDOS.includes(rol)) {
+        return res.status(400).json({ message: 'Rol inválido' });
+    }
+    // Evita que el admin se quite a sí mismo el rol de admin y quede sin acceso.
+    if (parseInt(id) === req.user.id && rol !== 'admin') {
+        return res.status(400).json({ message: 'No podés cambiar tu propio rol de administrador' });
+    }
+    db.run(`UPDATE users SET rol = ? WHERE id = ?`, [rol, id], function(err) {
+        if (err) return res.status(500).json({ message: err.message });
+        if (this.changes === 0) return res.status(404).json({ message: 'Usuario no encontrado' });
+        res.json({ message: 'Rol actualizado correctamente' });
+    });
+};
+
+exports.deleteUser = (req, res) => {
+    const { id } = req.params;
+    if (parseInt(id) === req.user.id) {
+        return res.status(400).json({ message: 'No podés eliminar tu propia cuenta' });
+    }
+    db.run(`DELETE FROM users WHERE id = ?`, [id], function(err) {
+        if (err) return res.status(500).json({ message: err.message });
+        if (this.changes === 0) return res.status(404).json({ message: 'Usuario no encontrado' });
+        res.json({ message: 'Usuario eliminado correctamente' });
+    });
+};
