@@ -9,11 +9,62 @@ const PadreDashboard = () => {
     const [notificaciones, setNotificaciones] = useState([]);
     const [hijosReales, setHijosReales] = useState([]);
     const [saldoTotal, setSaldoTotal] = useState(0);
+    const [disponibles, setDisponibles] = useState([]);
+    const [alumnoSel, setAlumnoSel] = useState('');
 
     useEffect(() => {
         fetchNotificaciones();
         fetchHijosYSaldos();
+        fetchDisponibles();
     }, []);
+
+    const fetchDisponibles = async () => {
+        try {
+            const response = await apiFetch('http://localhost:3000/api/academico/alumnos-disponibles');
+            if (response.ok) setDisponibles(await response.json());
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const vincularHijo = async () => {
+        if (!alumnoSel) return alert('Seleccioná un alumno para vincular.');
+        try {
+            const response = await apiFetch('http://localhost:3000/api/academico/vincular-hijo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ alumno_id: alumnoSel })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setAlumnoSel('');
+                fetchHijosYSaldos();
+                fetchDisponibles();
+            } else {
+                alert(data.message || 'No se pudo vincular el alumno.');
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const desvincularHijo = async (id, nombreCompleto) => {
+        if (!window.confirm(`¿Desvincular a ${nombreCompleto} de tu cuenta?`)) return;
+        try {
+            const response = await apiFetch(`http://localhost:3000/api/academico/desvincular-hijo/${id}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            if (response.ok) {
+                fetchHijosYSaldos();
+                fetchDisponibles();
+            } else {
+                alert(data.message || 'No se pudo desvincular el alumno.');
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     const fetchNotificaciones = async () => {
         try {
@@ -134,6 +185,61 @@ const PadreDashboard = () => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+                {/* Gestión de Hijos Vinculados */}
+                <div style={cardStyle}>
+                    <h3 style={cardTitleStyle}>🔗 Mis Hijos Vinculados</h3>
+
+                    <div style={{ marginTop: '16px' }}>
+                        {hijosReales.length === 0 ? (
+                            <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                Todavía no vinculaste ningún alumno. Seleccioná el legajo de tu hijo/a abajo.
+                            </p>
+                        ) : (
+                            hijosReales.map(h => (
+                                <div key={h.id} style={{
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    padding: '12px', background: '#f8fafc', borderRadius: '10px', marginBottom: '10px'
+                                }}>
+                                    <div>
+                                        <p style={{ fontWeight: 800, color: 'var(--blue)' }}>{h.apellido}, {h.nombre}</p>
+                                        <p style={{ fontSize: '0.75rem', color: '#64748b' }}>DNI: {h.dni}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => desvincularHijo(h.id, `${h.nombre} ${h.apellido}`)}
+                                        style={{ background: 'none', border: 'none', color: '#dc2626', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
+                                    >
+                                        Desvincular
+                                    </button>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    <div style={{ marginTop: '20px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
+                        <span style={labelStyle}>Vincular un nuevo alumno</span>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                            <select
+                                value={alumnoSel}
+                                onChange={(e) => setAlumnoSel(e.target.value)}
+                                style={{ flex: 1, minWidth: 0, padding: '10px 8px', borderRadius: '8px', border: '2px solid #e2e8f0', fontSize: '0.8rem' }}
+                            >
+                                <option value="">Seleccionar alumno...</option>
+                                {disponibles.map(a => (
+                                    <option key={a.id} value={a.id}>{a.apellido}, {a.nombre} (DNI: {a.dni})</option>
+                                ))}
+                            </select>
+                            <button onClick={vincularHijo} className="btn btn-violet" style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                                + Vincular
+                            </button>
+                        </div>
+                        {disponibles.length === 0 && (
+                            <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '8px' }}>
+                                No hay alumnos disponibles para vincular.
+                            </p>
+                        )}
+                    </div>
+                </div>
+
                 {/* Información del Alumno */}
                 <div style={cardStyle}>
                     <h3 style={cardTitleStyle}>👨‍👩‍👧 Seguimiento del Alumno</h3>

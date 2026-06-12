@@ -20,6 +20,9 @@ router.delete('/alumnos/:id', authMiddleware(['admin']), academicoController.del
 
 router.get('/materias', authMiddleware(['admin', 'docente']), academicoController.getMaterias);
 router.get('/mis-hijos', authMiddleware(['padre']), academicoController.getMisHijos);
+router.get('/alumnos-disponibles', authMiddleware(['padre']), academicoController.getAlumnosDisponibles);
+router.post('/vincular-hijo', authMiddleware(['padre']), academicoController.vincularHijo);
+router.delete('/desvincular-hijo/:id', authMiddleware(['padre']), academicoController.desvincularHijo);
 
 router.post('/asistencias', authMiddleware(['docente']), academicoController.registrarAsistencia);
 router.post('/calificaciones', authMiddleware(['docente']), academicoController.cargarCalificacion);

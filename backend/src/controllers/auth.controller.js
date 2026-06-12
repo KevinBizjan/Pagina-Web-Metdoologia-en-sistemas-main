@@ -3,29 +3,44 @@ const bcrypt = require('bcryptjs');
 const db = require('../config/database');
 require('dotenv').config();
 
-exports.register = async (req, res) => {
-    const { username, password, nombre, rol } = req.body;
+// Registro de cuenta familiar (rol "padre").
+// El usuario se registra con su correo y una contraseña. El correo se usa
+// como nombre de usuario para iniciar sesión. Luego, desde su panel, podrá
+// vincular el legajo de su hijo ya creado por la institución.
+exports.registroFamiliar = async (req, res) => {
+    const nombre = (req.body.nombre || '').trim().replace(/\s+/g, ' ');
+    const email = (req.body.email || '').trim().toLowerCase();
+    const password = req.body.password || '';
 
-    if (!username || !password || !nombre || !rol) {
+    // Validaciones básicas de entrada
+    if (!nombre || !email || !password) {
         return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ message: 'El correo electrónico no es válido' });
+    }
+    if (password.length < 6) {
+        return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const query = `INSERT INTO users (username, password, nombre, rol) VALUES (?, ?, ?, ?)`;
-    db.run(query, [username, hashedPassword, nombre, rol], function(err) {
+    // El rol siempre es "padre": no se toma del cliente.
+    const query = `INSERT INTO users (username, password, nombre, rol) VALUES (?, ?, ?, 'padre')`;
+    db.run(query, [email, hashedPassword, nombre], function(err) {
         if (err) {
             if (err.message.includes('UNIQUE constraint failed')) {
-                return res.status(400).json({ message: 'El nombre de usuario ya existe' });
+                return res.status(400).json({ message: 'Ya existe una cuenta con ese correo' });
             }
             return res.status(500).json({ message: 'Error al registrar usuario', error: err.message });
         }
-        res.status(201).json({ message: 'Usuario registrado exitosamente', userId: this.lastID });
+        res.status(201).json({ message: 'Cuenta creada con éxito', userId: this.lastID });
     });
 };
 
 exports.login = (req, res) => {
-    const { username, password } = req.body;
+    const username = (req.body.username || '').trim().toLowerCase();
+    const { password } = req.body;
 
     if (!username || !password) {
         return res.status(400).json({ message: 'Usuario y contraseña requeridos' });

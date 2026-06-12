@@ -128,6 +128,58 @@ exports.getMisHijos = (req, res) => {
     });
 };
 
+// --- VINCULACIÓN DE HIJOS (para rol padre) ---
+
+// Lista los alumnos que todavía no tienen un tutor asignado,
+// para que el padre pueda elegir cuál vincular a su cuenta.
+exports.getAlumnosDisponibles = (req, res) => {
+    const query = `
+        SELECT id, nombre, apellido, dni
+        FROM alumnos
+        WHERE tutor_id IS NULL
+        ORDER BY apellido, nombre
+    `;
+    db.all(query, [], (err, rows) => {
+        if (err) return res.status(500).json({ message: err.message });
+        res.json(rows);
+    });
+};
+
+// Vincula un alumno disponible a la cuenta del padre que hace la solicitud.
+exports.vincularHijo = (req, res) => {
+    const alumno_id = parseInt(req.body.alumno_id);
+    if (!alumno_id) return res.status(400).json({ message: "Debe seleccionar un alumno" });
+
+    // Solo permite vincular si el alumno aún no tiene tutor.
+    db.run(
+        "UPDATE alumnos SET tutor_id = ? WHERE id = ? AND tutor_id IS NULL",
+        [req.user.id, alumno_id],
+        function(err) {
+            if (err) return res.status(500).json({ message: err.message });
+            if (this.changes === 0) {
+                return res.status(400).json({ message: "El alumno no existe o ya tiene un tutor asignado" });
+            }
+            res.json({ message: "Alumno vinculado correctamente" });
+        }
+    );
+};
+
+// Desvincula un hijo de la cuenta del padre (solo si le pertenece).
+exports.desvincularHijo = (req, res) => {
+    const { id } = req.params;
+    db.run(
+        "UPDATE alumnos SET tutor_id = NULL WHERE id = ? AND tutor_id = ?",
+        [id, req.user.id],
+        function(err) {
+            if (err) return res.status(500).json({ message: err.message });
+            if (this.changes === 0) {
+                return res.status(404).json({ message: "No se encontró el alumno vinculado a su cuenta" });
+            }
+            res.json({ message: "Alumno desvinculado correctamente" });
+        }
+    );
+};
+
 exports.deleteAlumno = (req, res) => {
     const { id } = req.params;
     db.run("DELETE FROM alumnos WHERE id = ?", [id], function(err) {

@@ -158,7 +158,18 @@ const LoginPage = () => {
                     </button>
                 </form>
 
-                <div style={{ marginTop: '32px', textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '24px' }}>
+                {(roleParam === 'padre' || !roleParam) && (
+                    <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                        <p style={{ color: 'var(--text-sm)', fontSize: '0.9rem' }}>
+                            ¿Sos una familia nueva?{' '}
+                            <a href="/registro" style={{ color: 'var(--violet)', fontWeight: '800' }}>
+                                Crear cuenta familiar
+                            </a>
+                        </p>
+                    </div>
+                )}
+
+                <div style={{ marginTop: '24px', textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '24px' }}>
                     <a href="/" style={{ color: 'var(--blue)', fontWeight: '800', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                         <span>←</span> Volver al inicio
                     </a>

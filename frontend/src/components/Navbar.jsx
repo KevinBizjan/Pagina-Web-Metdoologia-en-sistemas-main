@@ -39,13 +39,13 @@ const Navbar = () => {
     <header className="topbar" style={{ background: 'linear-gradient(to right, #f8fafc, #eff6ff)', borderBottom: '2px solid var(--blue-lt)' }}>
       <div className="topbar-inner">
         {/* Logo */}
-        <a href="/" className="logo">
+        <a href="/" className="logo" style={{ marginLeft: '-12px' }}>
           <div className="logo-icon" style={{ width: '70px', height: '70px' }}>
             <img src="/img/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <div className="logo-text">
-            <span style={{ fontSize: '1.2rem' }}>EDUCAR</span>
-            <span style={{ fontSize: '0.7rem' }}>Para Transformar</span>
+            <span style={{ fontSize: '1.2rem', fontFamily: 'Playfair Display, serif', fontWeight: 900, lineHeight: 1.3 }}>EDUCAR</span>
+            <span style={{ fontSize: '0.7rem', fontFamily: 'Playfair Display, serif', fontWeight: 800, lineHeight: 1.3 }}>Para Transformar</span>
           </div>
         </a>
 
