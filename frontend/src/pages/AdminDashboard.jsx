@@ -15,7 +15,6 @@ const AdminDashboard = () => {
     const [editingAlumno, setEditingAlumno] = useState(null);
     const [personal, setPersonal] = useState([]);
     const [niveles, setNiveles] = useState([]);
-    const [padres, setPadres] = useState([]);
 
     const [rutasTransporte, setRutasTransporte] = useState([]);
     const [cuotasConfig, setCuotasConfig] = useState([]);
@@ -194,13 +193,6 @@ const AdminDashboard = () => {
         if (!window.confirm('¿Eliminar esta actividad? Se borrarán también sus inscripciones.')) return;
         const response = await apiFetch(`http://localhost:3000/api/academico/actividades/${id}`, { method: 'DELETE' });
         if (response.ok) fetchActividades();
-    };
-
-    const fetchPadres = async () => {
-        try {
-            const response = await apiFetch('http://localhost:3000/api/auth/padres');
-            if (response.ok) setPadres(await response.json());
-        } catch (error) { console.error(error); }
     };
 
     const fetchReportesStats = async () => {

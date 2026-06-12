@@ -20,7 +20,7 @@ const NOTICIAS = [
     id: 2,
     titulo: 'Nueva Pileta Inaugurada',
     dia: '11', mes: 'FEB',
-    img: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?w=600&q=80',
+    img: 'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=600&q=80',
     alt: 'Nueva pileta',
     resumen: 'Inauguramos las nuevas instalaciones de natación con tecnología de primer nivel. Clases disponibles para todos los niveles educativos.',
     contenido: [
