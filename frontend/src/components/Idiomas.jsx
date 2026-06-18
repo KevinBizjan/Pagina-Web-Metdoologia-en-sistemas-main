@@ -1,11 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const Idiomas = () => {
+  // La animación de entrada la controla este componente con su propio observer,
+  // para no depender del observer global de LandingPage (que es poco confiable
+  // según el orden de las secciones y dejaba la sección en blanco).
+  const [visible, setVisible] = useState(false);
+  const sectionRef = useRef(null);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.12 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const fade = (extra = '') => `fade-in ${visible ? 'visible' : ''} ${extra}`.trim();
+
   return (
-    <section className="section" id="idiomas" style={{ background: 'var(--white)' }}>
+    <section className="section" id="idiomas" style={{ background: 'var(--white)' }} ref={sectionRef}>
       <div className="container">
-        <h2 className="section-title fade-in">Departamento de Idiomas</h2>
-        <p className="section-sub fade-in">
+        <h2 className={`section-title ${fade()}`}>Departamento de Idiomas</h2>
+        <p className={`section-sub ${fade()}`}>
           Formamos ciudadanos del mundo con un sólido dominio de lenguas extranjeras desde los primeros años.
         </p>
 
@@ -17,7 +41,7 @@ const Idiomas = () => {
             marginTop: '40px',
           }}
         >
-          <div className="serv-card fade-in" style={{ borderTopColor: '#012169' }}>
+          <div className={`serv-card ${fade()}`} style={{ borderTopColor: '#012169' }}>
             <div className="serv-icon" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <img
                 src="https://flagcdn.com/w80/gb.png"
@@ -30,7 +54,7 @@ const Idiomas = () => {
           </div>
 
           <div
-            className="serv-card fade-in"
+            className={`serv-card ${fade()}`}
             style={{ borderTopColor: '#009c3b', transitionDelay: '.1s' }}
           >
             <div className="serv-icon" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -48,7 +72,7 @@ const Idiomas = () => {
           </div>
 
           <div
-            className="serv-card fade-in"
+            className={`serv-card ${fade()}`}
             style={{ borderTopColor: '#002395', transitionDelay: '.2s' }}
           >
             <div className="serv-icon" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>

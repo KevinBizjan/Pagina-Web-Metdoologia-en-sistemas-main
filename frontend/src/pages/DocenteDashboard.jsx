@@ -9,6 +9,7 @@ const DocenteDashboard = () => {
     const [materiaSel, setMateriaSel] = useState('');
     const [, setLoading] = useState(true);
     const [aviso, setAviso] = useState('');
+    const [avisoDestino, setAvisoDestino] = useState('all');
     const [instalaciones, setInstalaciones] = useState([]);
     const [actividades, setActividades] = useState([]);
     const [actividadSel, setActividadSel] = useState('');
@@ -77,7 +78,8 @@ const DocenteDashboard = () => {
     };
 
     const saveNotaActividad = async (alumnoId, nota) => {
-        if (!nota) return alert('Ingrese una nota');
+        if (nota === '' || nota === undefined) return alert('Ingrese una nota');
+        if (!notaValida(nota)) return alert('La nota debe ser un número entero entre 1 y 10 (sin decimales ni texto).');
         try {
             const r = await apiFetch('http://localhost:3000/api/academico/actividades/calificacion', {
                 method: 'POST',
@@ -164,8 +166,12 @@ const DocenteDashboard = () => {
         }
     };
 
+    // Valida que la nota sea un entero estricto de 1 a 10 (sin decimales, texto ni negativos).
+    const notaValida = (nota) => /^\d+$/.test(String(nota).trim()) && Number(nota) >= 1 && Number(nota) <= 10;
+
     const saveNota = async (alumnoId, nota) => {
-        if (!nota) return alert('Ingrese una nota');
+        if (nota === '' || nota === undefined) return alert('Ingrese una nota');
+        if (!notaValida(nota)) return alert('La nota debe ser un número entero entre 1 y 10 (sin decimales ni texto).');
         try {
             const response = await apiFetch('http://localhost:3000/api/academico/calificaciones', {
                 method: 'POST',
@@ -196,12 +202,13 @@ const DocenteDashboard = () => {
                 body: JSON.stringify({
                     titulo: 'Aviso del Docente',
                     mensaje: aviso,
-                    rol_destino: 'all'
+                    rol_destino: avisoDestino
                 })
             });
             if (response.ok) {
                 alert('Aviso publicado');
                 setAviso('');
+                setAvisoDestino('all');
             }
         } catch (error) {
             console.error(error);
@@ -366,10 +373,10 @@ const DocenteDashboard = () => {
                                     <tr key={a.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                         <td style={{ padding: '14px 0', fontWeight: 700, fontSize: '0.9rem' }}>{a.apellido}, {a.nombre}</td>
                                         <td>
-                                            <input 
-                                                type="number" 
-                                                min="1" max="10"
-                                                value={a.notaTmp} 
+                                            <input
+                                                type="number"
+                                                min="1" max="10" step="1"
+                                                value={a.notaTmp}
                                                 onChange={(e) => handleNotaChange(a.id, e.target.value)}
                                                 style={{ 
                                                     width: '50px', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', 
@@ -427,13 +434,26 @@ const DocenteDashboard = () => {
                 <div className="dashboard-card" style={{ ...cardStyle, gridColumn: '1 / -1' }}>
                     <h3 style={cardTitleStyle}>📣 Comunicado Institucional</h3>
                     <div style={{ marginTop: '16px', display: 'flex', gap: '16px', flexDirection: 'column' }}>
-                        <textarea 
+                        <textarea
                             value={aviso}
                             onChange={(e) => setAviso(e.target.value)}
                             placeholder="Escribe el mensaje para tus alumnos o colegas..."
                             style={{ width: '100%', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', resize: 'none', height: '100px', fontFamily: 'inherit', outline: 'none' }}
                         ></textarea>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Destinatario:</label>
+                                <select
+                                    value={avisoDestino}
+                                    onChange={(e) => setAvisoDestino(e.target.value)}
+                                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem', fontWeight: 700 }}
+                                >
+                                    <option value="all">Todos los perfiles</option>
+                                    <option value="alumno">Solo Alumnos</option>
+                                    <option value="padre">Solo Padres/Tutores</option>
+                                    <option value="docente">Solo Docentes</option>
+                                </select>
+                            </div>
                             <button onClick={publicarAviso} className="btn btn-violet" style={{ padding: '12px 28px' }}>Publicar Aviso →</button>
                         </div>
                     </div>
@@ -493,7 +513,7 @@ const DocenteDashboard = () => {
                                             </td>
                                             <td>
                                                 <input
-                                                    type="number" min="1" max="10"
+                                                    type="number" min="1" max="10" step="1"
                                                     value={i.notaTmp}
                                                     onChange={(e) => handleNotaActChange(i.alumno_id, e.target.value)}
                                                     style={{ width: '50px', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, backgroundColor: getNotaColor(i.notaTmp) }}

@@ -37,7 +37,7 @@ const AdminDashboard = () => {
         }
         if (activeTab === 'personal') fetchPersonal();
         if (activeTab === 'finanzas') { fetchFinanzas(); fetchNiveles(); fetchAlumnos(); fetchPagos(); }
-        if (activeTab === 'servicios') fetchServicios();
+        if (activeTab === 'servicios') { fetchServicios(); fetchAlumnos(); }
         if (activeTab === 'reportes') fetchReportesStats();
         if (activeTab === 'usuarios') fetchUsuarios();
     }, [activeTab]);
@@ -358,6 +358,27 @@ const AdminDashboard = () => {
             const data = await response.json();
             if (response.ok) setNiveles(data);
         } catch (error) { console.error(error); }
+    };
+
+    const handleNivelSubmit = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const nombre = form.nombre.value.trim();
+        if (!nombre) return alert('Ingresá el nombre del nivel.');
+        const response = await apiFetch('http://localhost:3000/api/academico/niveles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre })
+        });
+        if (response.ok) { form.reset(); fetchNiveles(); }
+        else { const d = await response.json().catch(() => ({})); alert(d.message || 'Error al crear el nivel'); }
+    };
+
+    const deleteNivel = async (id) => {
+        if (!window.confirm('¿Eliminar este nivel educativo?')) return;
+        const response = await apiFetch(`http://localhost:3000/api/academico/niveles/${id}`, { method: 'DELETE' });
+        if (response.ok) fetchNiveles();
+        else { const d = await response.json().catch(() => ({})); alert(d.message || 'No se pudo eliminar el nivel'); }
     };
 
     const fetchPersonal = async () => {
@@ -722,6 +743,24 @@ const AdminDashboard = () => {
         } catch (error) { console.error(error); }
     };
 
+    const handleAsignarTransporte = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const datos = {
+            alumno_id: parseInt(form.alumno_id.value),
+            ruta_id: parseInt(form.ruta_id.value),
+            punto_encuentro: form.punto_encuentro.value.trim()
+        };
+        if (!datos.alumno_id || !datos.ruta_id) return alert('Seleccioná alumno y ruta.');
+        const response = await apiFetch('http://localhost:3000/api/servicios/transporte/asignar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+        if (response.ok) { form.reset(); alert('Alumno asignado a la ruta correctamente.'); }
+        else { const d = await response.json().catch(() => ({})); alert(d.message || 'Error al asignar el alumno a la ruta'); }
+    };
+
     const deleteRuta = async (id) => {
         if (!window.confirm('¿Eliminar ruta?')) return;
         try {
@@ -988,6 +1027,29 @@ const AdminDashboard = () => {
             )}
 
             {activeTab === 'academico' && academicoSub === 'cursos' && (
+              <>
+                <div style={{ background: 'var(--white)', padding: '24px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)', marginBottom: '24px' }}>
+                    <h2 style={{ fontSize: '1.25rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '8px' }}>Niveles Educativos</h2>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px' }}>
+                        Configurá los niveles (Inicial, Primario, Secundario u otros). Las divisiones se crean luego como cursos dentro de cada nivel.
+                    </p>
+                    <form onSubmit={handleNivelSubmit} style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                        <input type="text" name="nombre" placeholder="Nombre del nivel (Ej: Inicial)" required style={{ ...inputStyle, flex: 1, minWidth: '220px' }} />
+                        <button type="submit" className="btn btn-violet" style={{ whiteSpace: 'nowrap' }}>+ Crear Nivel</button>
+                    </form>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {niveles.length === 0 ? (
+                            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>No hay niveles configurados.</span>
+                        ) : (
+                            niveles.map(n => (
+                                <span key={n.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#eff6ff', color: 'var(--blue)', fontWeight: 700, fontSize: '0.85rem', padding: '6px 12px', borderRadius: '20px' }}>
+                                    {n.nombre}
+                                    <button onClick={() => deleteNivel(n.id)} title="Eliminar nivel" style={{ background: 'none', border: 'none', color: '#dc2626', fontWeight: 800, cursor: 'pointer', fontSize: '0.9rem', lineHeight: 1 }}>✕</button>
+                                </span>
+                            ))
+                        )}
+                    </div>
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                     <div style={{ background: 'var(--white)', padding: '24px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -1075,6 +1137,7 @@ const AdminDashboard = () => {
                         )}
                     </div>
                 </div>
+              </>
             )}
 
             {activeTab === 'personal' && (
@@ -1318,6 +1381,23 @@ const AdminDashboard = () => {
                                 )}
                             </tbody>
                         </table>
+
+                        <div style={{ marginTop: '28px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
+                            <h3 style={{ fontSize: '1.05rem', color: 'var(--blue)', fontWeight: 800, marginBottom: '8px' }}>🚏 Asignar alumno a una ruta</h3>
+                            <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '12px' }}>Asigná un alumno a un recorrido e indicá su punto de encuentro.</p>
+                            <form onSubmit={handleAsignarTransporte} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', alignItems: 'end' }}>
+                                <select name="alumno_id" required style={inputStyle} defaultValue="">
+                                    <option value="">Seleccionar alumno...</option>
+                                    {alumnos.map(a => <option key={a.id} value={a.id}>{a.apellido}, {a.nombre} (DNI {a.dni})</option>)}
+                                </select>
+                                <select name="ruta_id" required style={inputStyle} defaultValue="">
+                                    <option value="">Seleccionar ruta...</option>
+                                    {rutasTransporte.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                                </select>
+                                <input type="text" name="punto_encuentro" placeholder="Punto de encuentro (opcional)" style={inputStyle} />
+                                <button type="submit" className="btn btn-green" style={{ whiteSpace: 'nowrap' }}>Asignar</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}

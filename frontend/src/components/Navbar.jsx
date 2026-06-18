@@ -14,7 +14,9 @@ const Navbar = () => {
     // Scrollspy: marca como activa la sección visible debajo del header sticky.
     // El offset se calcula con la altura real del header para que la categoría
     // resaltada coincida con la sección a la que apunta, también al hacer scroll.
-    const ids = ['institucion', 'niveles', 'servicios', 'noticias', 'idiomas', 'preinscripcion', 'contacto'];
+    // Nota: 'preinscripcion' no está en el menú, así que no se lista (Idiomas
+    // queda resaltado hasta que aparece el footer = Contacto).
+    const ids = ['institucion', 'niveles', 'servicios', 'noticias', 'idiomas'];
 
     const handleScroll = () => {
       const header = document.querySelector('.topbar');
@@ -23,6 +25,14 @@ const Navbar = () => {
       // Si estamos arriba de todo, la categoría activa es "Inicio" ('').
       if (window.scrollY < 80) {
         setActiveSection('');
+        return;
+      }
+
+      // Desde la sección Preinscripción hacia abajo (CTA y footer) marcamos
+      // "Contacto" y se mantiene resaltado hasta el final de la página.
+      const preins = document.getElementById('preinscripcion');
+      if (preins && window.scrollY >= preins.offsetTop - offset) {
+        setActiveSection('contacto');
         return;
       }
 

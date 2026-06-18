@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 const LoginPage = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [errors, setErrors] = useState({});
     const [error, setError] = useState('');
     const { login, user } = useAuth();
     const navigate = useNavigate();
@@ -42,14 +43,49 @@ const LoginPage = () => {
         }
     };
 
+    // Valida un campo puntual con un mensaje descriptivo que orienta al usuario
+    // sobre el dato esperado, sin revelar cuál credencial es incorrecta (seguridad).
+    const validarCampo = (name, valor) => {
+        if (name === 'username') {
+            if (!valor.trim()) return 'Ingresá tu usuario (DNI o correo electrónico).';
+            if (/\s/.test(valor)) return 'El usuario no debe contener espacios.';
+            return '';
+        }
+        if (name === 'password') {
+            if (!valor) return 'Ingresá tu contraseña.';
+            return '';
+        }
+        return '';
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        // Validación previa a consultar la BD (RF18): usuario y contraseña no vacíos,
+        // con avisos descriptivos por campo en lugar de un único error genérico.
+        const nuevos = {
+            username: validarCampo('username', username),
+            password: validarCampo('password', password)
+        };
+        setErrors(nuevos);
+        if (nuevos.username || nuevos.password) return;
+
         const result = await login(username, password);
         if (!result.success) {
+            // Fallo de autenticación real: mensaje genérico (no se revela cuál credencial falló).
             setError(result.message);
         }
     };
+
+    const campoStyle = (name) => ({
+        width: '100%', padding: '14px 18px', borderRadius: '12px',
+        border: `2px solid ${errors[name] ? '#dc2626' : '#f1f5f9'}`,
+        fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s'
+    });
+    const FieldError = ({ name }) => errors[name] ? (
+        <span style={{ display: 'block', color: '#dc2626', fontSize: '0.78rem', fontWeight: 700, marginTop: '6px' }}>{errors[name]}</span>
+    ) : null;
 
     return (
         <div style={{
@@ -111,44 +147,30 @@ const LoginPage = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
                     <div style={{ marginBottom: '20px' }}>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '800', fontSize: '0.85rem', color: 'var(--text-sm)', textTransform: 'uppercase' }}>Usuario</label>
                         <input
                             type="text"
                             value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '14px 18px',
-                                borderRadius: '12px',
-                                border: '2px solid #f1f5f9',
-                                fontSize: '1rem',
-                                outline: 'none',
-                                transition: 'border-color 0.2s'
-                            }}
-                            placeholder="Tu nombre de usuario"
-                            required
+                            onChange={(e) => { setUsername(e.target.value); if (errors.username) setErrors((p) => ({ ...p, username: validarCampo('username', e.target.value) })); }}
+                            onBlur={(e) => setErrors((p) => ({ ...p, username: validarCampo('username', e.target.value) }))}
+                            style={campoStyle('username')}
+                            placeholder="Tu usuario"
                         />
+                        <FieldError name="username" />
                     </div>
                     <div style={{ marginBottom: '32px' }}>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '800', fontSize: '0.85rem', color: 'var(--text-sm)', textTransform: 'uppercase' }}>Contraseña</label>
                         <input
                             type="password"
                             value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '14px 18px',
-                                borderRadius: '12px',
-                                border: '2px solid #f1f5f9',
-                                fontSize: '1rem',
-                                outline: 'none',
-                                transition: 'border-color 0.2s'
-                            }}
+                            onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors((p) => ({ ...p, password: validarCampo('password', e.target.value) })); }}
+                            onBlur={(e) => setErrors((p) => ({ ...p, password: validarCampo('password', e.target.value) }))}
+                            style={campoStyle('password')}
                             placeholder="••••••••"
-                            required
                         />
+                        <FieldError name="password" />
                     </div>
                     <button type="submit" className="btn btn-violet" style={{ 
                         width: '100%', justifyContent: 'center', padding: '16px', fontSize: '1.1rem',

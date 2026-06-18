@@ -5,6 +5,8 @@ const authMiddleware = require('../middlewares/auth.middleware');
 
 // Rutas protegidas por rol (Admin y Docente)
 router.get('/niveles', academicoController.getNiveles);
+router.post('/niveles', authMiddleware(['admin']), academicoController.createNivel);
+router.delete('/niveles/:id', authMiddleware(['admin']), academicoController.deleteNivel);
 router.get('/aulas', academicoController.getAulas);
 router.post('/aulas', authMiddleware(['admin']), academicoController.createAula);
 router.delete('/aulas/:id', authMiddleware(['admin']), academicoController.deleteAula);

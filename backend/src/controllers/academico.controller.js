@@ -11,6 +11,31 @@ exports.getNiveles = (req, res) => {
     });
 };
 
+exports.createNivel = (req, res) => {
+    const nombre = (req.body.nombre || '').trim();
+    if (!nombre) return res.status(400).json({ message: "El nombre del nivel es obligatorio" });
+    db.run("INSERT INTO niveles (nombre) VALUES (?)", [nombre], function(err) {
+        if (err) return res.status(500).json({ message: err.message });
+        res.status(201).json({ id: this.lastID });
+    });
+};
+
+// Baja de nivel: se impide si tiene cursos asociados, para no dejar datos huérfanos.
+exports.deleteNivel = (req, res) => {
+    const { id } = req.params;
+    db.get("SELECT COUNT(*) as total FROM cursos WHERE nivel_id = ?", [id], (err, row) => {
+        if (err) return res.status(500).json({ message: err.message });
+        if (row.total > 0) {
+            return res.status(400).json({ message: "No se puede eliminar: el nivel tiene cursos/divisiones asociados" });
+        }
+        db.run("DELETE FROM niveles WHERE id = ?", [id], function(err) {
+            if (err) return res.status(500).json({ message: err.message });
+            if (this.changes === 0) return res.status(404).json({ message: "Nivel no encontrado" });
+            res.json({ message: "Nivel eliminado correctamente" });
+        });
+    });
+};
+
 // --- AULAS ---
 exports.getAulas = (req, res) => {
     db.all("SELECT * FROM aulas", [], (err, rows) => {
@@ -395,9 +420,18 @@ exports.registrarAsistencia = (req, res) => {
 
 exports.cargarCalificacion = (req, res) => {
     const { alumno_id, materia_id, nota, trimestre } = req.body;
-    const notaNum = parseInt(nota);
-    if (isNaN(notaNum) || notaNum < 1 || notaNum > 10) {
-        return res.status(400).json({ message: "La nota debe ser un número entre 1 y 10" });
+    if (!alumno_id) return res.status(400).json({ message: "Datos incompletos" });
+    // La nota debe ser estrictamente un entero entre 1 y 10:
+    // se rechazan vacíos, texto ("ocho"), alfanuméricos ("7a"), decimales (7.5) y negativos (-3).
+    if (nota === undefined || nota === null || String(nota).trim() === '') {
+        return res.status(400).json({ message: "La nota es obligatoria" });
+    }
+    if (!/^\d+$/.test(String(nota).trim())) {
+        return res.status(400).json({ message: "La nota debe ser un número entero (sin decimales, texto ni símbolos)" });
+    }
+    const notaNum = Number(nota);
+    if (notaNum < 1 || notaNum > 10) {
+        return res.status(400).json({ message: "La nota debe estar en el rango de 1 a 10" });
     }
     db.run("INSERT INTO calificaciones (alumno_id, materia_id, nota, trimestre) VALUES (?, ?, ?, ?)", [alumno_id, materia_id, notaNum, trimestre], function(err) {
         if (err) return res.status(500).json({ message: err.message });
@@ -550,12 +584,19 @@ exports.registrarAsistenciaActividad = (req, res) => {
 
 exports.cargarCalificacionActividad = (req, res) => {
     const { actividad_id, alumno_id, nota } = req.body;
-    const notaNum = parseInt(nota);
     if (!actividad_id || !alumno_id) {
         return res.status(400).json({ message: "Datos incompletos" });
     }
-    if (isNaN(notaNum) || notaNum < 1 || notaNum > 10) {
-        return res.status(400).json({ message: "La nota debe ser un número entre 1 y 10" });
+    // Misma validación estricta que las calificaciones de materias: entero 1 a 10.
+    if (nota === undefined || nota === null || String(nota).trim() === '') {
+        return res.status(400).json({ message: "La nota es obligatoria" });
+    }
+    if (!/^\d+$/.test(String(nota).trim())) {
+        return res.status(400).json({ message: "La nota debe ser un número entero (sin decimales, texto ni símbolos)" });
+    }
+    const notaNum = Number(nota);
+    if (notaNum < 1 || notaNum > 10) {
+        return res.status(400).json({ message: "La nota debe estar en el rango de 1 a 10" });
     }
     db.run(
         "INSERT INTO actividad_calificaciones (actividad_id, alumno_id, nota) VALUES (?, ?, ?)",

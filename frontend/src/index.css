@@ -137,8 +137,11 @@ nav a {
   transition: all .2s;
   white-space: nowrap;
 }
-nav a:hover, nav a.active { color: var(--blue); background: #eff6ff; }
-nav a.active { border-bottom: 2px solid var(--blue); border-radius: 8px 8px 0 0; }
+nav a:hover { color: var(--blue); background: #eff6ff; }
+/* La marca de "activo" usa un azul más fuerte que #eff6ff para que se vea en
+   cualquier posición del menú (el header tiene un degradado que termina en
+   #eff6ff del lado derecho, donde está Contacto, y se confundía con el fondo). */
+nav a.active { color: var(--blue); background: #dbeafe; border-bottom: 2px solid var(--blue); border-radius: 8px 8px 0 0; font-weight: 800; }
 /* Access buttons */
 .topbar-btns { display: flex; gap: 10px; align-items: center; }
 

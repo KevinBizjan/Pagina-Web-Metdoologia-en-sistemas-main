@@ -38,8 +38,8 @@ const LandingPage = () => {
         <Institucion />
         <Niveles />
         <Servicios />
-        <Idiomas />
         <Noticias />
+        <Idiomas />
         <Preinscripcion />
         <CtaBanner />
       </main>
