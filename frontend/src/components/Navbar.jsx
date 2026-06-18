@@ -11,19 +11,44 @@ const Navbar = () => {
   const toggleMenu = () => setIsOpen(!isOpen);
 
   useEffect(() => {
+    // Scrollspy: marca como activa la sección visible debajo del header sticky.
+    // El offset se calcula con la altura real del header para que la categoría
+    // resaltada coincida con la sección a la que apunta, también al hacer scroll.
+    const ids = ['institucion', 'niveles', 'servicios', 'noticias', 'idiomas', 'preinscripcion', 'contacto'];
+
     const handleScroll = () => {
-      const sections = document.querySelectorAll('section[id], div[id="inscripciones"]');
+      const header = document.querySelector('.topbar');
+      const offset = (header ? header.offsetHeight : 80) + 24;
+
+      // Si estamos arriba de todo, la categoría activa es "Inicio" ('').
+      if (window.scrollY < 80) {
+        setActiveSection('');
+        return;
+      }
+
+      // Elegimos la sección por su posición real en la página: de todas las que
+      // ya pasaron bajo el header, la que esté más abajo (mayor offsetTop).
+      // Esto evita que el orden del menú (Actividades antes que Idiomas) choque
+      // con el orden del DOM (la sección Idiomas está físicamente antes).
       let current = '';
-      sections.forEach(sec => {
-        if (window.scrollY >= sec.offsetTop - 120) {
-          current = sec.id;
+      let maxTop = -Infinity;
+      ids.forEach((id) => {
+        const sec = document.getElementById(id);
+        if (sec && window.scrollY >= sec.offsetTop - offset && sec.offsetTop > maxTop) {
+          current = id;
+          maxTop = sec.offsetTop;
         }
       });
       setActiveSection(current);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
   }, []);
 
   const handleLogout = (e) => {
@@ -66,6 +91,7 @@ const Navbar = () => {
             <div style={{ display: 'flex', gap: '8px' }}>
               <Link to="/login?role=padre" className="btn btn-green" style={{ fontSize: '0.8rem', padding: '10px 18px' }}>👨‍👩‍👧 Padres</Link>
               <Link to="/login?role=alumno" className="btn btn-violet" style={{ fontSize: '0.8rem', padding: '10px 18px' }}>🎒 Alumnos</Link>
+              <Link to="/login?role=docente" className="btn btn-blue" style={{ fontSize: '0.8rem', padding: '10px 18px' }}>👨‍🏫 Docentes</Link>
             </div>
           ) : (
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

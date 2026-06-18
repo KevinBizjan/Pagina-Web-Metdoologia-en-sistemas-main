@@ -1,6 +1,9 @@
 const db = require('../config/database');
 const PDFDocument = require('pdfkit');
 
+// Un nombre/apellido válido solo tiene letras, espacios y signos básicos (sin números ni símbolos).
+const NOMBRE_REGEX = /^[\p{L}\s'’.-]+$/u;
+
 // --- PERSONAL ---
 exports.getPersonal = (req, res) => {
     db.all("SELECT * FROM personal", [], (err, rows) => {
@@ -12,10 +15,34 @@ exports.getPersonal = (req, res) => {
 exports.createPersonal = (req, res) => {
     const { nombre, apellido, dni, tipo, email } = req.body;
     if (!nombre || !apellido || !dni || !tipo) return res.status(400).json({ message: "Campos obligatorios" });
+    if (!NOMBRE_REGEX.test(String(nombre).trim()) || !NOMBRE_REGEX.test(String(apellido).trim())) {
+        return res.status(400).json({ message: "Nombre y apellido solo pueden contener letras (sin números ni símbolos)" });
+    }
+    if (!/^\d+$/.test(String(dni).trim())) return res.status(400).json({ message: "El DNI debe ser numérico (sin puntos ni letras)" });
     db.run("INSERT INTO personal (nombre, apellido, dni, tipo, email) VALUES (?, ?, ?, ?, ?)", [nombre, apellido, dni, tipo, email], function(err) {
         if (err) return res.status(500).json({ message: err.message });
         res.status(201).json({ id: this.lastID });
     });
+};
+
+// Modificación de legajo de personal docente / no docente (mismo ABM que alumnos).
+exports.updatePersonal = (req, res) => {
+    const { id } = req.params;
+    const { nombre, apellido, dni, tipo, email } = req.body;
+    if (!nombre || !apellido || !dni || !tipo) return res.status(400).json({ message: "Campos obligatorios" });
+    if (!NOMBRE_REGEX.test(String(nombre).trim()) || !NOMBRE_REGEX.test(String(apellido).trim())) {
+        return res.status(400).json({ message: "Nombre y apellido solo pueden contener letras (sin números ni símbolos)" });
+    }
+    if (!/^\d+$/.test(String(dni).trim())) return res.status(400).json({ message: "El DNI debe ser numérico (sin puntos ni letras)" });
+    db.run(
+        "UPDATE personal SET nombre = ?, apellido = ?, dni = ?, tipo = ?, email = ? WHERE id = ?",
+        [nombre, apellido, dni, tipo, email, id],
+        function(err) {
+            if (err) return res.status(500).json({ message: err.message });
+            if (this.changes === 0) return res.status(404).json({ message: "Personal no encontrado" });
+            res.json({ message: "Legajo de personal actualizado correctamente" });
+        }
+    );
 };
 
 exports.deletePersonal = (req, res) => {
@@ -61,13 +88,19 @@ exports.deleteCuotaConfig = (req, res) => {
 // --- PAGOS & DEUDA ---
 exports.registrarPago = (req, res) => {
     const { alumno_id, cuota_id, monto_pagado, metodo_pago } = req.body;
-    if (!alumno_id || !monto_pagado) return res.status(400).json({ message: "Datos incompletos" });
+    if (!alumno_id || monto_pagado === undefined || monto_pagado === null || monto_pagado === '') {
+        return res.status(400).json({ message: "Datos incompletos" });
+    }
+    const montoNum = parseFloat(monto_pagado);
+    if (isNaN(montoNum) || montoNum <= 0) {
+        return res.status(400).json({ message: "El monto pagado debe ser un número mayor a 0" });
+    }
 
     db.serialize(() => {
         db.run("BEGIN TRANSACTION");
 
         const queryPago = "INSERT INTO pagos (alumno_id, cuota_id, monto_pagado, metodo_pago) VALUES (?, ?, ?, ?)";
-        db.run(queryPago, [alumno_id, cuota_id, monto_pagado, metodo_pago], function(err) {
+        db.run(queryPago, [alumno_id, cuota_id, montoNum, metodo_pago], function(err) {
             if (err) {
                 db.run("ROLLBACK");
                 return res.status(500).json({ message: "Error al registrar el pago" });
@@ -82,7 +115,7 @@ exports.registrarPago = (req, res) => {
                 saldo_pendiente = saldo_pendiente - ?, 
                 ultima_actualizacion = CURRENT_TIMESTAMP
             `;
-            db.run(queryDeuda, [alumno_id, monto_pagado, monto_pagado], function(err) {
+            db.run(queryDeuda, [alumno_id, montoNum, montoNum], function(err) {
                 if (err) {
                     db.run("ROLLBACK");
                     return res.status(500).json({ message: "Error al actualizar la deuda" });

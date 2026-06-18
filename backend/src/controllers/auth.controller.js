@@ -3,6 +3,10 @@ const bcrypt = require('bcryptjs');
 const db = require('../config/database');
 require('dotenv').config();
 
+// Un nombre válido solo tiene letras (con acentos/ñ), espacios y signos básicos
+// de nombres (apóstrofo, punto, guion). No se aceptan números ni otros símbolos.
+const NOMBRE_REGEX = /^[\p{L}\s'’.-]+$/u;
+
 // Registro de cuenta familiar (rol "padre").
 // El usuario se registra con su correo y una contraseña. El correo se usa
 // como nombre de usuario para iniciar sesión. Luego, desde su panel, podrá
@@ -15,6 +19,9 @@ exports.registroFamiliar = async (req, res) => {
     // Validaciones básicas de entrada
     if (!nombre || !email || !password) {
         return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+    }
+    if (!NOMBRE_REGEX.test(nombre)) {
+        return res.status(400).json({ message: 'El nombre solo puede contener letras (sin números ni símbolos)' });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ message: 'El correo electrónico no es válido' });
@@ -114,6 +121,9 @@ exports.createUser = async (req, res) => {
 
     if (!nombre || !username || !password || !rol) {
         return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+    }
+    if (!NOMBRE_REGEX.test(nombre)) {
+        return res.status(400).json({ message: 'El nombre solo puede contener letras (sin números ni símbolos)' });
     }
     if (!ROLES_VALIDOS.includes(rol)) {
         return res.status(400).json({ message: 'Rol inválido' });

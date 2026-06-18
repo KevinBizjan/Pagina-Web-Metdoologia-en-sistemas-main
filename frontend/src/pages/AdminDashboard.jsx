@@ -13,6 +13,7 @@ const AdminDashboard = () => {
     const { apiFetch } = useAuth();
 
     const [editingAlumno, setEditingAlumno] = useState(null);
+    const [editingPersonal, setEditingPersonal] = useState(null);
     const [personal, setPersonal] = useState([]);
     const [niveles, setNiveles] = useState([]);
 
@@ -408,24 +409,28 @@ const AdminDashboard = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/financiero/personal', {
-                method: 'POST',
-                headers: { 
+            const url = editingPersonal
+                ? `http://localhost:3000/api/financiero/personal/${editingPersonal.id}`
+                : 'http://localhost:3000/api/financiero/personal';
+            const response = await fetch(url, {
+                method: editingPersonal ? 'PUT' : 'POST',
+                headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(personalData)
             });
             if (response.ok) {
                 setShowPersonalForm(false);
+                setEditingPersonal(null);
                 fetchPersonal();
             } else {
                 const errorData = await response.json();
-                alert(errorData.message || 'Error al registrar personal');
+                alert(errorData.message || 'Error al guardar el legajo de personal');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error de conexión al registrar personal');
+            alert('Error de conexión al guardar personal');
         }
     };
 
@@ -998,7 +1003,7 @@ const AdminDashboard = () => {
                                     {niveles.map(n => <option key={n.id} value={n.id}>{n.nombre}</option>)}
                                 </select>
                                 <input type="text" name="division" placeholder="División (Ej: A, B, 1°)" required style={inputStyle} />
-                                <input type="number" name="cupo" placeholder="Cupo Máximo" required style={inputStyle} />
+                                <input type="number" name="cupo" min="1" step="1" placeholder="Cupo Máximo" required style={inputStyle} />
                                 <button type="submit" className="btn btn-violet">Crear Curso</button>
                             </form>
                         )}
@@ -1042,7 +1047,7 @@ const AdminDashboard = () => {
                         {showAulaForm && (
                             <form onSubmit={handleAulaSubmit} style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 <input type="text" name="nombre" placeholder="Nombre del Aula" required style={inputStyle} />
-                                <input type="number" name="capacidad" placeholder="Capacidad" required style={inputStyle} />
+                                <input type="number" name="capacidad" min="1" step="1" placeholder="Capacidad" required style={inputStyle} />
                                 <button type="submit" className="btn btn-violet">Crear Aula</button>
                             </form>
                         )}
@@ -1085,7 +1090,7 @@ const AdminDashboard = () => {
                                 onChange={(e) => setSearchTermPersonal(e.target.value)}
                             />
                         </div>
-                        <button onClick={() => setShowPersonalForm(!showPersonalForm)} className="btn btn-green" style={{ fontSize: '0.85rem' }}>
+                        <button onClick={() => { if (showPersonalForm) { setShowPersonalForm(false); setEditingPersonal(null); } else { setEditingPersonal(null); setShowPersonalForm(true); } }} className="btn btn-green" style={{ fontSize: '0.85rem' }}>
                             {showPersonalForm ? '✕ Cancelar' : '+ Nuevo Personal'}
                         </button>
                     </div>
@@ -1095,17 +1100,17 @@ const AdminDashboard = () => {
                             background: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '24px',
                             display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px'
                         }}>
-                            <input type="text" name="nombre" placeholder="Nombre" required style={inputStyle} />
-                            <input type="text" name="apellido" placeholder="Apellido" required style={inputStyle} />
-                            <input type="text" name="dni" placeholder="DNI" required style={inputStyle} />
-                            <input type="email" name="email" placeholder="Email" required style={inputStyle} />
-                            <select name="tipo" required style={inputStyle}>
+                            <input key={`nombre-${editingPersonal?.id || 'new'}`} type="text" name="nombre" placeholder="Nombre" required style={inputStyle} defaultValue={editingPersonal?.nombre || ''} />
+                            <input key={`apellido-${editingPersonal?.id || 'new'}`} type="text" name="apellido" placeholder="Apellido" required style={inputStyle} defaultValue={editingPersonal?.apellido || ''} />
+                            <input key={`dni-${editingPersonal?.id || 'new'}`} type="text" name="dni" placeholder="DNI" required style={inputStyle} defaultValue={editingPersonal?.dni || ''} />
+                            <input key={`email-${editingPersonal?.id || 'new'}`} type="email" name="email" placeholder="Email" required style={inputStyle} defaultValue={editingPersonal?.email || ''} />
+                            <select key={`tipo-${editingPersonal?.id || 'new'}`} name="tipo" required style={inputStyle} defaultValue={editingPersonal?.tipo || 'Docente'}>
                                 <option value="Docente">Docente</option>
                                 <option value="Administrativo">Administrativo</option>
                                 <option value="Maestranza">Maestranza</option>
                                 <option value="Directivo">Directivo</option>
                             </select>
-                            <button type="submit" className="btn btn-violet">Registrar Personal</button>
+                            <button type="submit" className="btn btn-violet">{editingPersonal ? 'Guardar Cambios' : 'Registrar Personal'}</button>
                         </form>
                     )}
                     {loading ? <p>Cargando personal...</p> : (
@@ -1113,6 +1118,7 @@ const AdminDashboard = () => {
                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
+                                        <th style={thStyle}>Legajo</th>
                                         <th style={thStyle}>Nombre</th>
                                         <th style={thStyle}>DNI</th>
                                         <th style={thStyle}>Tipo</th>
@@ -1122,16 +1128,23 @@ const AdminDashboard = () => {
                                 </thead>
                                 <tbody>
                                     {personal.length === 0 ? (
-                                        <tr><td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>No hay personal registrado.</td></tr>
+                                        <tr><td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>No hay personal registrado.</td></tr>
                                     ) : (
                                         filteredPersonal.map((p) => (
                                             <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                <td style={tdStyle}>#{p.id}</td>
                                                 <td style={tdStyle}><strong>{p.apellido}, {p.nombre}</strong></td>
                                                 <td style={tdStyle}>{p.dni}</td>
                                                 <td style={tdStyle}><span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--blue)' }}>{p.tipo.toUpperCase()}</span></td>
                                                 <td style={tdStyle}>{p.email}</td>
                                                 <td style={tdStyle}>
-                                                    <button 
+                                                    <button
+                                                        onClick={() => { setEditingPersonal(p); setShowPersonalForm(true); }}
+                                                        style={{ background: 'none', border: 'none', color: 'var(--blue)', fontWeight: 700, cursor: 'pointer', marginRight: '10px' }}
+                                                    >
+                                                        Editar
+                                                    </button>
+                                                    <button
                                                         onClick={() => deletePersonal(p.id)}
                                                         style={{ background: 'none', border: 'none', color: '#dc2626', fontWeight: 700, cursor: 'pointer' }}
                                                     >
@@ -1162,7 +1175,7 @@ const AdminDashboard = () => {
                             </div>
                             <div>
                                 <label style={labelStyle}>Monto Mensual ($)</label>
-                                <input type="number" name="monto" step="0.01" placeholder="Ej: 45000.00" required style={inputStyle} />
+                                <input type="number" name="monto" min="0.01" step="0.01" placeholder="Ej: 45000.00" required style={inputStyle} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
@@ -1196,7 +1209,7 @@ const AdminDashboard = () => {
                                     <option value="">Cuota (opcional)</option>
                                     {cuotasConfig.map(c => <option key={c.id} value={c.id}>{c.nivel_nombre} · {c.mes}/{c.anio} · ${c.monto}</option>)}
                                 </select>
-                                <input type="number" step="0.01" name="monto_pagado" placeholder="Monto pagado" required style={inputStyle} />
+                                <input type="number" min="0.01" step="0.01" name="monto_pagado" placeholder="Monto pagado" required style={inputStyle} />
                                 <select name="metodo_pago" required style={inputStyle} defaultValue="Efectivo">
                                     <option value="Efectivo">Efectivo</option>
                                     <option value="Transferencia">Transferencia</option>
@@ -1276,7 +1289,7 @@ const AdminDashboard = () => {
                         <form onSubmit={handleRutaSubmit} style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
                             <input type="text" name="nombre" placeholder="Nombre Ruta" required style={inputStyle} />
                             <input type="text" name="chofer" placeholder="Chofer" required style={inputStyle} />
-                            <input type="number" name="capacidad" placeholder="Cap." required style={{ ...inputStyle, width: '80px' }} />
+                            <input type="number" name="capacidad" min="1" step="1" placeholder="Cap." required style={{ ...inputStyle, width: '80px' }} />
                             <button type="submit" className="btn btn-green">+</button>
                         </form>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>

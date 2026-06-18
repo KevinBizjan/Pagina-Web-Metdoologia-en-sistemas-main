@@ -80,6 +80,8 @@ ul { list-style: none; }
 .btn-green:hover  { background: #25943f; box-shadow: 0 8px 20px rgba(45,168,74,.3); }
 .btn-violet { background: var(--violet); color: #fff; box-shadow: 0 4px 12px rgba(124,58,237,.2); }
 .btn-violet:hover { background: #6727d4; box-shadow: 0 8px 20px rgba(124,58,237,.3); }
+.btn-blue { background: var(--blue); color: #fff; box-shadow: 0 4px 12px rgba(26,95,168,.2); }
+.btn-blue:hover { background: #154e8a; box-shadow: 0 8px 20px rgba(26,95,168,.3); }
 .btn-outline-white { border-color: #fff; color: #fff; background: transparent; }
 .btn-outline-white:hover { background: #fff; color: var(--blue); }
 
@@ -92,6 +94,10 @@ ul { list-style: none; }
   position: sticky; top: 0; z-index: 1000;
   box-shadow: 0 2px 12px rgba(0,0,0,.07);
 }
+/* Compensa el header sticky al navegar por anclas (#seccion):
+   la sección queda visible debajo de la barra y no tapada por ella. */
+section[id], footer[id] { scroll-margin-top: 110px; }
+html { scroll-behavior: smooth; }
 .topbar-inner {
   display: flex;
   align-items: center;

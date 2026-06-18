@@ -4,7 +4,7 @@ const Servicios = () => {
   return (
     <section className="section servicios" id="servicios">
       <div className="container">
-        <h2 className="section-title fade-in">Ofrecemos</h2>
+        <h2 className="section-title fade-in">Servicios</h2>
         <p className="section-sub fade-in">Servicios pensados para que las familias tengan tranquilidad y los estudiantes, las mejores condiciones para aprender.</p>
 
         <div className="servicios-grid">

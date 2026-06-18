@@ -1,5 +1,8 @@
 const db = require('../config/database');
 
+// Un nombre/apellido válido solo tiene letras, espacios y signos básicos (sin números ni símbolos).
+const NOMBRE_REGEX = /^[\p{L}\s'’.-]+$/u;
+
 // --- NIVELES ---
 exports.getNiveles = (req, res) => {
     db.all("SELECT * FROM niveles", [], (err, rows) => {
@@ -18,8 +21,14 @@ exports.getAulas = (req, res) => {
 
 exports.createAula = (req, res) => {
     const { nombre, capacidad } = req.body;
-    if (!nombre || !capacidad) return res.status(400).json({ message: "Campos obligatorios" });
-    db.run("INSERT INTO aulas (nombre, capacidad) VALUES (?, ?)", [nombre, capacidad], function(err) {
+    if (!nombre || capacidad === undefined || capacidad === null || capacidad === '') {
+        return res.status(400).json({ message: "Campos obligatorios" });
+    }
+    const capacidadNum = Number(capacidad);
+    if (!Number.isInteger(capacidadNum) || capacidadNum <= 0) {
+        return res.status(400).json({ message: "La capacidad debe ser un número entero mayor a 0" });
+    }
+    db.run("INSERT INTO aulas (nombre, capacidad) VALUES (?, ?)", [nombre, capacidadNum], function(err) {
         if (err) return res.status(500).json({ message: err.message });
         res.status(201).json({ id: this.lastID });
     });
@@ -40,8 +49,14 @@ exports.getCursos = (req, res) => {
 
 exports.createCurso = (req, res) => {
     const { nivel_id, division, cupo } = req.body;
-    if (!nivel_id || !division || !cupo) return res.status(400).json({ message: "Campos obligatorios" });
-    db.run("INSERT INTO cursos (nivel_id, division, cupo) VALUES (?, ?, ?)", [nivel_id, division, cupo], function(err) {
+    if (!nivel_id || !division || cupo === undefined || cupo === null || cupo === '') {
+        return res.status(400).json({ message: "Campos obligatorios" });
+    }
+    const cupoNum = Number(cupo);
+    if (!Number.isInteger(cupoNum) || cupoNum <= 0) {
+        return res.status(400).json({ message: "El cupo debe ser un número entero mayor a 0" });
+    }
+    db.run("INSERT INTO cursos (nivel_id, division, cupo) VALUES (?, ?, ?)", [nivel_id, division, cupoNum], function(err) {
         if (err) return res.status(500).json({ message: err.message });
         res.status(201).json({ id: this.lastID });
     });
@@ -65,6 +80,12 @@ exports.createAlumno = (req, res) => {
     const { nombre, apellido, dni, fecha_nacimiento, curso_id, tutor_id } = req.body;
     if (!nombre || !apellido || !dni || !fecha_nacimiento) {
         return res.status(400).json({ message: "Nombre, Apellido, DNI y Fecha de Nacimiento son obligatorios" });
+    }
+    if (!NOMBRE_REGEX.test(String(nombre).trim()) || !NOMBRE_REGEX.test(String(apellido).trim())) {
+        return res.status(400).json({ message: "Nombre y apellido solo pueden contener letras (sin números ni símbolos)" });
+    }
+    if (!/^\d+$/.test(String(dni).trim())) {
+        return res.status(400).json({ message: "El DNI debe ser numérico (sin puntos ni letras)" });
     }
 
     // Validar cupo si se asigna curso
@@ -92,6 +113,16 @@ exports.createAlumno = (req, res) => {
 exports.updateAlumno = (req, res) => {
     const { id } = req.params;
     const { nombre, apellido, dni, fecha_nacimiento, curso_id, tutor_id } = req.body;
+
+    if (!nombre || !apellido || !dni || !fecha_nacimiento) {
+        return res.status(400).json({ message: "Nombre, Apellido, DNI y Fecha de Nacimiento son obligatorios" });
+    }
+    if (!NOMBRE_REGEX.test(String(nombre).trim()) || !NOMBRE_REGEX.test(String(apellido).trim())) {
+        return res.status(400).json({ message: "Nombre y apellido solo pueden contener letras (sin números ni símbolos)" });
+    }
+    if (!/^\d+$/.test(String(dni).trim())) {
+        return res.status(400).json({ message: "El DNI debe ser numérico (sin puntos ni letras)" });
+    }
 
     const query = `
         UPDATE alumnos
@@ -163,12 +194,16 @@ exports.getActividades = (req, res) => {
 exports.createActividad = (req, res) => {
     const nombre = (req.body.nombre || '').trim();
     const { tipo, horario, cupo_max } = req.body;
-    if (!nombre || !tipo || !cupo_max) {
+    if (!nombre || !tipo || cupo_max === undefined || cupo_max === null || cupo_max === '') {
         return res.status(400).json({ message: "Nombre, tipo y cupo son obligatorios" });
+    }
+    const cupoNum = Number(cupo_max);
+    if (!Number.isInteger(cupoNum) || cupoNum <= 0) {
+        return res.status(400).json({ message: "El cupo debe ser un número entero mayor a 0" });
     }
     db.run(
         "INSERT INTO actividades_extra (nombre, tipo, horario, cupo_max) VALUES (?, ?, ?, ?)",
-        [nombre, tipo, horario || null, cupo_max],
+        [nombre, tipo, horario || null, cupoNum],
         function(err) {
             if (err) return res.status(500).json({ message: err.message });
             res.status(201).json({ id: this.lastID });

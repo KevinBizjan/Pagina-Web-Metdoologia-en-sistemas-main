@@ -2,11 +2,37 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
+// Validadores por campo: devuelven '' (ok) o el mensaje de error.
+// Permiten mostrar el error inline apenas se completa cada campo.
+const validateCampo = (name, { nombre, email, password, confirmar }) => {
+    switch (name) {
+        case 'nombre':
+            if (!nombre.trim()) return 'Ingresá tu nombre y apellido.';
+            if (!/^[\p{L}\s'’.-]+$/u.test(nombre.trim())) return 'El nombre solo puede contener letras (sin números ni símbolos).';
+            return '';
+        case 'email':
+            if (!email.trim()) return 'El correo es obligatorio.';
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'Ingresá un correo electrónico válido.';
+            return '';
+        case 'password':
+            if (!password) return 'La contraseña es obligatoria.';
+            if (password.length < 6) return 'La contraseña debe tener al menos 6 caracteres.';
+            return '';
+        case 'confirmar':
+            if (!confirmar) return 'Repetí la contraseña.';
+            if (password !== confirmar) return 'Las contraseñas no coinciden.';
+            return '';
+        default:
+            return '';
+    }
+};
+
 const RegistroPage = () => {
     const [nombre, setNombre] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmar, setConfirmar] = useState('');
+    const [errors, setErrors] = useState({});
     const [error, setError] = useState('');
     const [exito, setExito] = useState('');
     const [cargando, setCargando] = useState(false);
@@ -18,30 +44,31 @@ const RegistroPage = () => {
         if (user) navigate('/padre');
     }, [user]);
 
+    // Valida un campo puntual (en blur o cuando ya tenía error) y lo refleja inline.
+    const checkField = (name, overrides = {}) => {
+        const valores = { nombre, email, password, confirmar, ...overrides };
+        const msg = validateCampo(name, valores);
+        setErrors((prev) => ({ ...prev, [name]: msg }));
+        return msg;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setExito('');
 
-        // Validaciones en el navegador (avisos rápidos antes de llamar al servidor)
-        const nombreLimpio = nombre.trim();
-        const emailLimpio = email.trim().toLowerCase();
-
-        if (!nombreLimpio || !emailLimpio || !password) {
-            return setError('Completá todos los campos.');
-        }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpio)) {
-            return setError('Ingresá un correo electrónico válido.');
-        }
-        if (password.length < 6) {
-            return setError('La contraseña debe tener al menos 6 caracteres.');
-        }
-        if (password !== confirmar) {
-            return setError('Las contraseñas no coinciden.');
-        }
+        // Validamos todos los campos y mostramos cada error junto a su input.
+        const valores = { nombre, email, password, confirmar };
+        const nuevos = {};
+        ['nombre', 'email', 'password', 'confirmar'].forEach((name) => {
+            const msg = validateCampo(name, valores);
+            if (msg) nuevos[name] = msg;
+        });
+        setErrors(nuevos);
+        if (Object.keys(nuevos).length > 0) return;
 
         setCargando(true);
-        const result = await registrar(nombreLimpio, emailLimpio, password);
+        const result = await registrar(nombre.trim(), email.trim().toLowerCase(), password);
         setCargando(false);
 
         if (result.success) {
@@ -51,6 +78,9 @@ const RegistroPage = () => {
             setError(result.message);
         }
     };
+
+    const campoStyle = (name) => ({ ...inputStyle, borderColor: errors[name] ? '#dc2626' : '#f1f5f9' });
+    const FieldError = ({ name }) => errors[name] ? <span style={errorTextStyle}>{errors[name]}</span> : null;
 
     return (
         <div style={{
@@ -113,50 +143,54 @@ const RegistroPage = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
                     <div style={{ marginBottom: '20px' }}>
                         <label style={labelStyle}>Nombre y Apellido</label>
                         <input
                             type="text"
                             value={nombre}
-                            onChange={(e) => setNombre(e.target.value)}
-                            style={inputStyle}
+                            onChange={(e) => { setNombre(e.target.value); if (errors.nombre) checkField('nombre', { nombre: e.target.value }); }}
+                            onBlur={(e) => checkField('nombre', { nombre: e.target.value })}
+                            style={campoStyle('nombre')}
                             placeholder="Ej: María González"
-                            required
                         />
+                        <FieldError name="nombre" />
                     </div>
                     <div style={{ marginBottom: '20px' }}>
                         <label style={labelStyle}>Correo electrónico</label>
                         <input
                             type="email"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            style={inputStyle}
+                            onChange={(e) => { setEmail(e.target.value); if (errors.email) checkField('email', { email: e.target.value }); }}
+                            onBlur={(e) => checkField('email', { email: e.target.value })}
+                            style={campoStyle('email')}
                             placeholder="tucorreo@ejemplo.com"
-                            required
                         />
+                        <FieldError name="email" />
                     </div>
                     <div style={{ marginBottom: '20px' }}>
                         <label style={labelStyle}>Contraseña</label>
                         <input
                             type="password"
                             value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            style={inputStyle}
+                            onChange={(e) => { setPassword(e.target.value); if (errors.password) checkField('password', { password: e.target.value }); }}
+                            onBlur={(e) => checkField('password', { password: e.target.value })}
+                            style={campoStyle('password')}
                             placeholder="Mínimo 6 caracteres"
-                            required
                         />
+                        <FieldError name="password" />
                     </div>
                     <div style={{ marginBottom: '32px' }}>
                         <label style={labelStyle}>Repetir contraseña</label>
                         <input
                             type="password"
                             value={confirmar}
-                            onChange={(e) => setConfirmar(e.target.value)}
-                            style={inputStyle}
+                            onChange={(e) => { setConfirmar(e.target.value); if (errors.confirmar) checkField('confirmar', { confirmar: e.target.value }); }}
+                            onBlur={(e) => checkField('confirmar', { confirmar: e.target.value })}
+                            style={campoStyle('confirmar')}
                             placeholder="••••••••"
-                            required
                         />
+                        <FieldError name="confirmar" />
                     </div>
                     <button type="submit" disabled={cargando} className="btn btn-violet" style={{
                         width: '100%', justifyContent: 'center', padding: '16px', fontSize: '1.1rem',
@@ -187,6 +221,9 @@ const labelStyle = { display: 'block', marginBottom: '8px', fontWeight: '800', f
 const inputStyle = {
     width: '100%', padding: '14px 18px', borderRadius: '12px', border: '2px solid #f1f5f9',
     fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s'
+};
+const errorTextStyle = {
+    display: 'block', color: '#dc2626', fontSize: '0.78rem', fontWeight: 700, marginTop: '6px'
 };
 
 export default RegistroPage;
