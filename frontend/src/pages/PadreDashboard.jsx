@@ -115,10 +115,21 @@ const PadreDashboard = () => {
             if (!response.ok) return;
             const lista = await response.json();
             const saldos = await Promise.all(lista.map(async (h) => {
-                const r = await apiFetch(`http://localhost:3000/api/financiero/saldo/${h.id}`);
-                if (!r.ok) return { ...h, saldo_pendiente: 0 };
-                const s = await r.json();
-                return { ...h, saldo_pendiente: Number(s.saldo_pendiente) || 0 };
+                // Saldo + resumen académico real (promedio, asistencia, faltas) en paralelo.
+                const [rs, rr] = await Promise.all([
+                    apiFetch(`http://localhost:3000/api/financiero/saldo/${h.id}`),
+                    apiFetch(`http://localhost:3000/api/academico/mis-hijos/${h.id}/resumen`)
+                ]);
+                const s = rs.ok ? await rs.json() : { saldo_pendiente: 0 };
+                const resumen = rr.ok ? await rr.json() : {};
+                return {
+                    ...h,
+                    saldo_pendiente: Number(s.saldo_pendiente) || 0,
+                    promedio: resumen.promedio ?? null,
+                    asistencia_pct: resumen.asistencia_pct ?? null,
+                    faltas: resumen.faltas ?? 0,
+                    calificaciones: resumen.calificaciones || []
+                };
             }));
             setHijosReales(saldos);
             setSaldoTotal(saldos.reduce((acc, h) => acc + h.saldo_pendiente, 0));
@@ -135,9 +146,19 @@ const PadreDashboard = () => {
         }
     };
 
-    const hijos = [
-        { nombre: 'Pepe Alumno', grado: '4° Grado B', asistencia: '95%', cuota: 'Al día', promedio: 8.5, faltas: 2 }
-    ];
+    // Hijo seleccionado para el modal "Ver Reporte Completo".
+    const [reporteHijo, setReporteHijo] = useState(null);
+
+    // Agregados reales para las tarjetas de resumen (a partir de los hijos vinculados).
+    const conPromedio = hijosReales.filter(h => h.promedio != null);
+    const promedioGral = conPromedio.length
+        ? (conPromedio.reduce((a, h) => a + h.promedio, 0) / conPromedio.length).toFixed(2)
+        : null;
+    const conAsistencia = hijosReales.filter(h => h.asistencia_pct != null);
+    const asistenciaGral = conAsistencia.length
+        ? Math.round(conAsistencia.reduce((a, h) => a + h.asistencia_pct, 0) / conAsistencia.length)
+        : null;
+    const faltasTotal = hijosReales.reduce((a, h) => a + (h.faltas || 0), 0);
 
     const menuSemanal = [
         { dia: 'Lunes', plato: 'Tallarines con salsa bolognesa', postre: 'Fruta de estación' },
@@ -170,25 +191,31 @@ const PadreDashboard = () => {
             )}
 
             {/* Modal Reporte Completo */}
-            {showReporte && (
-                <div style={modalOverlay}>
-                    <div style={modalContent}>
+            {showReporte && reporteHijo && (
+                <div style={modalOverlay} onClick={() => setShowReporte(false)}>
+                    <div style={modalContent} onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                            <h2 style={{ color: 'var(--blue)' }}>📊 Reporte de Rendimiento</h2>
+                            <h2 style={{ color: 'var(--blue)' }}>📊 Reporte de {reporteHijo.nombre}</h2>
                             <button onClick={() => setShowReporte(false)} style={closeBtn}>✕</button>
                         </div>
                         <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px' }}>
-                            <h3 style={{ fontSize: '1rem', marginBottom: '16px' }}>Calificaciones - 1° Trimestre</h3>
-                            <div style={{ display: 'grid', gap: '10px' }}>
-                                <div style={notaRow}><span>Matemática</span> <strong>8.50</strong></div>
-                                <div style={notaRow}><span>Lengua y Literatura</span> <strong>9.00</strong></div>
-                                <div style={notaRow}><span>Ciencias Sociales</span> <strong>7.50</strong></div>
-                                <div style={notaRow}><span>Ciencias Naturales</span> <strong>8.00</strong></div>
-                            </div>
+                            <h3 style={{ fontSize: '1rem', marginBottom: '16px' }}>Calificaciones</h3>
+                            {(!reporteHijo.calificaciones || reporteHijo.calificaciones.length === 0) ? (
+                                <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Todavía no hay calificaciones cargadas.</p>
+                            ) : (
+                                <div style={{ display: 'grid', gap: '10px' }}>
+                                    {reporteHijo.calificaciones.map((c, idx) => (
+                                        <div key={idx} style={notaRow}>
+                                            <span>{c.materia_nombre || 'Materia'} {c.trimestre ? `(Trim. ${c.trimestre})` : ''}</span>
+                                            <strong>{Number(c.nota).toFixed(2)}</strong>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                             <hr style={{ margin: '20px 0', border: '0', borderTop: '1px solid #e2e8f0' }} />
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <strong>Promedio Parcial:</strong>
-                                <strong style={{ color: 'var(--blue)', fontSize: '1.2rem' }}>8.25</strong>
+                                <strong>Promedio General:</strong>
+                                <strong style={{ color: 'var(--blue)', fontSize: '1.2rem' }}>{reporteHijo.promedio ?? '—'}</strong>
                             </div>
                         </div>
                     </div>
@@ -199,22 +226,22 @@ const PadreDashboard = () => {
                 <div className="dashboard-card" style={{ ...cardStyle, textAlign: 'center' }}>
                     <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>📚</div>
                     <span style={labelStyle}>Promedio Gral</span>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--blue)' }}>{hijos[0].promedio}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--blue)' }}>{promedioGral ?? '—'}</div>
                 </div>
                 <div className="dashboard-card" style={{ ...cardStyle, textAlign: 'center' }}>
                     <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>✅</div>
                     <span style={labelStyle}>Asistencia</span>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--green)' }}>{hijos[0].asistencia}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--green)' }}>{asistenciaGral != null ? `${asistenciaGral}%` : '—'}</div>
                 </div>
                 <div className="dashboard-card" style={{ ...cardStyle, textAlign: 'center' }}>
                     <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>💰</div>
                     <span style={labelStyle}>Estado Cuota</span>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--blue)', marginTop: '8px' }}>{hijos[0].cuota.toUpperCase()}</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 900, color: saldoTotal > 0 ? '#991b1b' : 'var(--blue)', marginTop: '8px' }}>{saldoTotal > 0 ? 'CON DEUDA' : 'AL DÍA'}</div>
                 </div>
                 <div className="dashboard-card" style={{ ...cardStyle, textAlign: 'center' }}>
                     <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>📅</div>
                     <span style={labelStyle}>Faltas</span>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--orange)' }}>{hijos[0].faltas}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--orange)' }}>{faltasTotal}</div>
                 </div>
             </div>
 
@@ -277,24 +304,38 @@ const PadreDashboard = () => {
                 {/* Información del Alumno */}
                 <div style={cardStyle}>
                     <h3 style={cardTitleStyle}>👨‍👩‍👧 Seguimiento del Alumno</h3>
-                    {hijos.map((h, i) => (
-                        <div key={i} style={{ marginTop: '20px', padding: '16px', background: '#f8fafc', borderRadius: '12px' }}>
-                            <p style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--blue)' }}>{h.nombre}</p>
-                            <p style={{ fontSize: '0.9rem', color: 'var(--text-sm)' }}>{h.grado}</p>
-                            
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '16px' }}>
-                                <div style={infoBox}>
-                                    <span style={labelStyle}>Asistencia</span>
-                                    <span style={{ ...valueStyle, color: 'var(--green)' }}>{h.asistencia}</span>
+                    {hijosReales.length === 0 ? (
+                        <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '16px' }}>
+                            Vinculá el legajo de tu hijo/a para ver su seguimiento académico.
+                        </p>
+                    ) : (
+                        hijosReales.map((h) => (
+                            <div key={h.id} style={{ marginTop: '20px', padding: '16px', background: '#f8fafc', borderRadius: '12px' }}>
+                                <p style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--blue)' }}>{h.apellido}, {h.nombre}</p>
+                                <p style={{ fontSize: '0.9rem', color: 'var(--text-sm)' }}>{h.nivel_nombre ? `${h.nivel_nombre} ${h.division || ''}` : 'Sin curso asignado'}</p>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '16px' }}>
+                                    <div style={infoBox}>
+                                        <span style={labelStyle}>Promedio</span>
+                                        <span style={{ ...valueStyle, color: 'var(--blue)' }}>{h.promedio ?? '—'}</span>
+                                    </div>
+                                    <div style={infoBox}>
+                                        <span style={labelStyle}>Asistencia</span>
+                                        <span style={{ ...valueStyle, color: 'var(--green)' }}>{h.asistencia_pct != null ? `${h.asistencia_pct}%` : '—'}</span>
+                                    </div>
+                                    <div style={infoBox}>
+                                        <span style={labelStyle}>Faltas</span>
+                                        <span style={{ ...valueStyle, color: 'var(--orange)' }}>{h.faltas || 0}</span>
+                                    </div>
                                 </div>
-                                <div style={infoBox}>
-                                    <span style={labelStyle}>Estado Cuota</span>
-                                    <span style={{ ...valueStyle, color: 'var(--blue)' }}>{h.cuota}</span>
-                                </div>
+                                <button
+                                    onClick={() => { setReporteHijo(h); setShowReporte(true); }}
+                                    className="btn btn-violet"
+                                    style={{ width: '100%', marginTop: '12px', fontSize: '0.8rem' }}
+                                >Ver Reporte Completo</button>
                             </div>
-                        </div>
-                    ))}
-                    <button onClick={() => setShowReporte(true)} className="btn btn-violet" style={{ width: '100%', marginTop: '16px', fontSize: '0.85rem' }}>Ver Reporte Completo</button>
+                        ))
+                    )}
                 </div>
 
                 {/* Avisos Institucionales */}

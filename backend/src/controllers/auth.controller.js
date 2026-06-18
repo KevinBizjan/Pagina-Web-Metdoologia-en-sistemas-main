@@ -7,6 +7,16 @@ require('dotenv').config();
 // de nombres (apóstrofo, punto, guion). No se aceptan números ni otros símbolos.
 const NOMBRE_REGEX = /^[\p{L}\s'’.-]+$/u;
 
+// Política de complejidad de contraseña (solo para crear/registrar cuentas nuevas).
+// No afecta el login de cuentas ya existentes. Devuelve '' si es válida o el mensaje.
+const validarPassword = (pw) => {
+    if (!pw || pw.length < 8) return 'La contraseña debe tener al menos 8 caracteres.';
+    if (!/[A-Z]/.test(pw)) return 'La contraseña debe incluir al menos una mayúscula.';
+    if (!/[0-9]/.test(pw)) return 'La contraseña debe incluir al menos un número.';
+    if (!/[^A-Za-z0-9]/.test(pw)) return 'La contraseña debe incluir al menos un carácter especial (ej: ! @ # $).';
+    return '';
+};
+
 // Registro de cuenta familiar (rol "padre").
 // El usuario se registra con su correo y una contraseña. El correo se usa
 // como nombre de usuario para iniciar sesión. Luego, desde su panel, podrá
@@ -26,8 +36,9 @@ exports.registroFamiliar = async (req, res) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ message: 'El correo electrónico no es válido' });
     }
-    if (password.length < 6) {
-        return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
+    const pwError = validarPassword(password);
+    if (pwError) {
+        return res.status(400).json({ message: pwError });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -128,8 +139,9 @@ exports.createUser = async (req, res) => {
     if (!ROLES_VALIDOS.includes(rol)) {
         return res.status(400).json({ message: 'Rol inválido' });
     }
-    if (password.length < 6) {
-        return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres' });
+    const pwError = validarPassword(password);
+    if (pwError) {
+        return res.status(400).json({ message: pwError });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

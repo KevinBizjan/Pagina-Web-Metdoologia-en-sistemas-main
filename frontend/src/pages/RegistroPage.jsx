@@ -16,7 +16,10 @@ const validateCampo = (name, { nombre, email, password, confirmar }) => {
             return '';
         case 'password':
             if (!password) return 'La contraseña es obligatoria.';
-            if (password.length < 6) return 'La contraseña debe tener al menos 6 caracteres.';
+            if (password.length < 8) return 'La contraseña debe tener al menos 8 caracteres.';
+            if (!/[A-Z]/.test(password)) return 'La contraseña debe incluir al menos una mayúscula.';
+            if (!/[0-9]/.test(password)) return 'La contraseña debe incluir al menos un número.';
+            if (!/[^A-Za-z0-9]/.test(password)) return 'La contraseña debe incluir al menos un carácter especial (ej: ! @ # $).';
             return '';
         case 'confirmar':
             if (!confirmar) return 'Repetí la contraseña.';
@@ -176,7 +179,7 @@ const RegistroPage = () => {
                             onChange={(e) => { setPassword(e.target.value); if (errors.password) checkField('password', { password: e.target.value }); }}
                             onBlur={(e) => checkField('password', { password: e.target.value })}
                             style={campoStyle('password')}
-                            placeholder="Mínimo 6 caracteres"
+                            placeholder="Mín. 8: mayúscula, número y símbolo"
                         />
                         <FieldError name="password" />
                     </div>

@@ -60,8 +60,8 @@ const DocenteDashboard = () => {
     };
 
     const handleNotaActChange = (alumnoId, nota) => {
-        const val = parseInt(nota);
-        if (nota !== '' && (val < 1 || val > 10)) return;
+        // Se permite escribir libremente; la validación (entero 1-10) se aplica al guardar,
+        // para poder mostrar el mensaje de error también ante texto o decimales (CP-015).
         setInscriptos(inscriptos.map(i => i.alumno_id === alumnoId ? { ...i, notaTmp: nota } : i));
     };
 
@@ -216,8 +216,8 @@ const DocenteDashboard = () => {
     };
 
     const handleNotaChange = (id, nuevaNota) => {
-        const val = parseInt(nuevaNota);
-        if (nuevaNota !== '' && (val < 1 || val > 10)) return;
+        // Entrada libre; la validación estricta (entero 1-10) se aplica al guardar,
+        // así también se muestra el error ante texto o decimales (CP-015).
         setAlumnos(alumnos.map(a => a.id === id ? { ...a, notaTmp: nuevaNota } : a));
     };
 
@@ -374,8 +374,9 @@ const DocenteDashboard = () => {
                                         <td style={{ padding: '14px 0', fontWeight: 700, fontSize: '0.9rem' }}>{a.apellido}, {a.nombre}</td>
                                         <td>
                                             <input
-                                                type="number"
-                                                min="1" max="10" step="1"
+                                                type="text"
+                                                inputMode="numeric" maxLength={4}
+                                                placeholder="1-10"
                                                 value={a.notaTmp}
                                                 onChange={(e) => handleNotaChange(a.id, e.target.value)}
                                                 style={{ 
@@ -513,7 +514,8 @@ const DocenteDashboard = () => {
                                             </td>
                                             <td>
                                                 <input
-                                                    type="number" min="1" max="10" step="1"
+                                                    type="text" inputMode="numeric" maxLength={4}
+                                                    placeholder="1-10"
                                                     value={i.notaTmp}
                                                     onChange={(e) => handleNotaActChange(i.alumno_id, e.target.value)}
                                                     style={{ width: '50px', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700, backgroundColor: getNotaColor(i.notaTmp) }}

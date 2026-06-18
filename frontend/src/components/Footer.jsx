@@ -1,5 +1,15 @@
 import React from 'react';
 
+// Destinos reales de las redes/enlaces institucionales. Se pueden reemplazar por
+// los perfiles oficiales del colegio cuando existan.
+const REDES = {
+  facebook: 'https://www.facebook.com/UTN.FRRe',
+  instagram: 'https://www.instagram.com/utn.frre',
+  youtube: 'https://www.youtube.com/@utnfrre',
+  twitter: 'https://x.com/utnfrre',
+  utn: 'https://www.frre.utn.edu.ar/',
+};
+
 const Footer = () => {
   return (
     <footer id="contacto">
@@ -37,16 +47,17 @@ const Footer = () => {
         <div className="footer-col">
           <h4>Redes Sociales</h4>
           <ul style={{ marginBottom: '16px' }}>
-            <li><a href="#">• Facebook</a></li>
-            <li><a href="#">• Instagram</a></li>
-            <li><a href="#">• YouTube</a></li>
-            <li><a href="#">• Twitter / X</a></li>
+            <li><a href={REDES.facebook} target="_blank" rel="noopener noreferrer">• Facebook</a></li>
+            <li><a href={REDES.instagram} target="_blank" rel="noopener noreferrer">• Instagram</a></li>
+            <li><a href={REDES.youtube} target="_blank" rel="noopener noreferrer">• YouTube</a></li>
+            <li><a href={REDES.twitter} target="_blank" rel="noopener noreferrer">• Twitter / X</a></li>
+            <li><a href={REDES.utn} target="_blank" rel="noopener noreferrer">• UTN FRRe</a></li>
           </ul>
           <div className="social-icons">
-            <div className="social-icon" title="Facebook">f</div>
-            <div className="social-icon" title="Twitter">𝕏</div>
-            <div className="social-icon" title="Instagram">📷</div>
-            <div className="social-icon" title="YouTube">▶</div>
+            <a className="social-icon" href={REDES.facebook} target="_blank" rel="noopener noreferrer" title="Facebook">f</a>
+            <a className="social-icon" href={REDES.twitter} target="_blank" rel="noopener noreferrer" title="Twitter / X">𝕏</a>
+            <a className="social-icon" href={REDES.instagram} target="_blank" rel="noopener noreferrer" title="Instagram">📷</a>
+            <a className="social-icon" href={REDES.youtube} target="_blank" rel="noopener noreferrer" title="YouTube">▶</a>
           </div>
         </div>
 

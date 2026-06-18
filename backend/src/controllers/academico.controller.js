@@ -331,6 +331,54 @@ exports.getMisHijos = (req, res) => {
     });
 };
 
+// Resumen académico de un hijo (rol padre, solo lectura): promedio, asistencia
+// y faltas reales calculados desde calificaciones y asistencias. Restringido a
+// los alumnos cuyo tutor_id sea el padre logueado.
+exports.getResumenHijo = (req, res) => {
+    const alumno_id = parseInt(req.params.alumno_id);
+    if (!alumno_id) return res.status(400).json({ message: "Alumno inválido" });
+
+    db.get("SELECT id FROM alumnos WHERE id = ? AND tutor_id = ?", [alumno_id, req.user.id], (err, alumno) => {
+        if (err) return res.status(500).json({ message: err.message });
+        if (!alumno) return res.status(403).json({ message: "No tenés acceso a este alumno" });
+
+        const resumen = { promedio: null, total_clases: 0, presentes: 0, faltas: 0, asistencia_pct: null, calificaciones: [] };
+
+        db.serialize(() => {
+            db.get("SELECT AVG(nota) AS prom FROM calificaciones WHERE alumno_id = ?", [alumno_id], (e, r) => {
+                if (!e && r && r.prom != null) resumen.promedio = Math.round(r.prom * 100) / 100;
+            });
+            db.get(
+                `SELECT COUNT(*) AS total,
+                        SUM(CASE WHEN estado = 'Presente' THEN 1 ELSE 0 END) AS presentes,
+                        SUM(CASE WHEN estado = 'Ausente' THEN 1 ELSE 0 END) AS faltas
+                 FROM asistencias WHERE alumno_id = ?`,
+                [alumno_id],
+                (e, r) => {
+                    if (!e && r) {
+                        resumen.total_clases = r.total || 0;
+                        resumen.presentes = r.presentes || 0;
+                        resumen.faltas = r.faltas || 0;
+                        resumen.asistencia_pct = r.total ? Math.round((r.presentes / r.total) * 100) : null;
+                    }
+                }
+            );
+            db.all(
+                `SELECT materias.nombre AS materia_nombre, c.nota, c.trimestre
+                 FROM calificaciones c
+                 LEFT JOIN materias ON c.materia_id = materias.id
+                 WHERE c.alumno_id = ?
+                 ORDER BY materias.nombre, c.trimestre`,
+                [alumno_id],
+                (e, rows) => {
+                    if (!e && rows) resumen.calificaciones = rows;
+                    res.json(resumen);
+                }
+            );
+        });
+    });
+};
+
 // --- VINCULACIÓN DE HIJOS (para rol padre) ---
 
 // Lista los alumnos que todavía no tienen un tutor asignado,

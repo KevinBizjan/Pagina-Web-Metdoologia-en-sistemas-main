@@ -1668,7 +1668,7 @@ const AdminDashboard = () => {
                         </div>
                         <div>
                             <label style={labelStyle}>Contraseña</label>
-                            <input type="password" name="password" placeholder="Mín. 6 caracteres" required style={inputStyle} />
+                            <input type="password" name="password" placeholder="Mín. 8: mayúscula, número y símbolo" required style={inputStyle} />
                         </div>
                         <div>
                             <label style={labelStyle}>Rol</label>

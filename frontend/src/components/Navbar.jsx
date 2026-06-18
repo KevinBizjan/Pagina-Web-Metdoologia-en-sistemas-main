@@ -88,7 +88,7 @@ const Navbar = () => {
         <nav>
           <a href="/" className={activeSection === '' ? 'active' : ''}>Inicio</a>
           <a href="#institucion" className={activeSection === 'institucion' ? 'active' : ''}>Nosotros</a>
-          <a href="#niveles" className={activeSection === 'niveles' ? 'active' : ''}>Niveles</a>
+          <a href="#niveles" className={activeSection === 'niveles' ? 'active' : ''}>Niveles Educativos</a>
           <a href="#servicios" className={activeSection === 'servicios' ? 'active' : ''}>Servicios</a>
           <a href="#noticias" className={activeSection === 'noticias' ? 'active' : ''}>Actividades</a>
           <a href="#idiomas" className={activeSection === 'idiomas' ? 'active' : ''}>Idiomas</a>
@@ -119,7 +119,7 @@ const Navbar = () => {
       <nav className={`mobile-nav ${isOpen ? 'open' : ''}`} id="mobileNav">
         <a href="/" onClick={() => setIsOpen(false)}>Inicio</a>
         <a href="#institucion" onClick={() => setIsOpen(false)}>Nosotros</a>
-        <a href="#niveles" onClick={() => setIsOpen(false)}>Niveles</a>
+        <a href="#niveles" onClick={() => setIsOpen(false)}>Niveles Educativos</a>
         <a href="#servicios" onClick={() => setIsOpen(false)}>Servicios</a>
         <a href="#noticias" onClick={() => setIsOpen(false)}>Actividades</a>
         <a href="#idiomas" onClick={() => setIsOpen(false)}>Idiomas</a>

@@ -39,8 +39,13 @@ const validators = {
         return '';
     },
     tutor_email: (v) => {
-        if (!v.trim()) return 'El correo es obligatorio.';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())) return 'El correo electrónico no tiene un formato válido.';
+        const val = v.trim();
+        if (!val) return 'El correo es obligatorio.';
+        // Mensajes específicos según el problema, como en el caso de prueba Test-009.
+        if (!val.includes('@')) return `Incluí un signo @ en la dirección de correo. "${val}" no incluye @.`;
+        const dominio = val.split('@')[1] || '';
+        if (!dominio || !dominio.includes('.')) return 'Ingresá texto después del signo @; la dirección está incompleta.';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return 'El correo electrónico no tiene un formato válido.';
         return '';
     },
     observaciones: () => ''
