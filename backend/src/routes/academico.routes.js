@@ -6,6 +6,7 @@ const authMiddleware = require('../middlewares/auth.middleware');
 // Rutas protegidas por rol (Admin y Docente)
 router.get('/niveles', academicoController.getNiveles);
 router.post('/niveles', authMiddleware(['admin']), academicoController.createNivel);
+router.put('/niveles/:id', authMiddleware(['admin']), academicoController.updateNivel);
 router.delete('/niveles/:id', authMiddleware(['admin']), academicoController.deleteNivel);
 router.get('/aulas', academicoController.getAulas);
 router.post('/aulas', authMiddleware(['admin']), academicoController.createAula);
@@ -22,11 +23,13 @@ router.delete('/alumnos/:id', authMiddleware(['admin']), academicoController.del
 
 router.get('/materias', authMiddleware(['admin', 'docente']), academicoController.getMaterias);
 router.post('/materias', authMiddleware(['admin']), academicoController.createMateria);
+router.put('/materias/:id', authMiddleware(['admin']), academicoController.updateMateria);
 router.delete('/materias/:id', authMiddleware(['admin']), academicoController.deleteMateria);
 
 // Actividades extracurriculares (deportivas/culturales)
 router.get('/actividades', authMiddleware(['admin', 'alumno', 'docente']), academicoController.getActividades);
 router.post('/actividades', authMiddleware(['admin']), academicoController.createActividad);
+router.put('/actividades/:id', authMiddleware(['admin']), academicoController.updateActividad);
 router.delete('/actividades/:id', authMiddleware(['admin']), academicoController.deleteActividad);
 router.get('/mis-inscripciones', authMiddleware(['alumno']), academicoController.getMisInscripciones);
 router.post('/inscribir-actividad', authMiddleware(['alumno']), academicoController.inscribirActividad);

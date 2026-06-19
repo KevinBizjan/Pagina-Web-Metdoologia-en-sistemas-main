@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 
+// Un nombre válido (nivel, materia, actividad) solo tiene letras, espacios y signos básicos (sin números ni símbolos).
+const NOMBRE_REGEX = /^[\p{L}\s'’.-]+$/u;
+const esNombreValido = (texto) => NOMBRE_REGEX.test(String(texto || '').trim());
+
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('preinscripciones');
     const [preinscripciones, setPreinscripciones] = useState([]);
@@ -14,6 +18,9 @@ const AdminDashboard = () => {
 
     const [editingAlumno, setEditingAlumno] = useState(null);
     const [editingPersonal, setEditingPersonal] = useState(null);
+    const [editingNivel, setEditingNivel] = useState(null);
+    const [editingMateria, setEditingMateria] = useState(null);
+    const [editingActividad, setEditingActividad] = useState(null);
     const [personal, setPersonal] = useState([]);
     const [niveles, setNiveles] = useState([]);
 
@@ -154,15 +161,20 @@ const AdminDashboard = () => {
     const handleMateriaSubmit = async (e) => {
         e.preventDefault();
         const form = e.target;
-        const datos = { nombre: form.nombre.value, curso_id: form.curso_id.value };
+        const nombre = form.nombre.value.trim();
+        const datos = { nombre, curso_id: form.curso_id.value };
         if (!datos.curso_id) return alert('Seleccioná un curso para la materia.');
-        const response = await apiFetch('http://localhost:3000/api/academico/materias', {
-            method: 'POST',
+        if (!esNombreValido(nombre)) return alert('El nombre de la materia solo puede contener letras (sin números ni símbolos).');
+        const url = editingMateria
+            ? `http://localhost:3000/api/academico/materias/${editingMateria.id}`
+            : 'http://localhost:3000/api/academico/materias';
+        const response = await apiFetch(url, {
+            method: editingMateria ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
-        if (response.ok) { form.reset(); fetchMaterias(); }
-        else { const d = await response.json(); alert(d.message || 'Error al crear materia'); }
+        if (response.ok) { form.reset(); setEditingMateria(null); fetchMaterias(); }
+        else { const d = await response.json(); alert(d.message || 'Error al guardar materia'); }
     };
 
     const deleteMateria = async (id) => {
@@ -174,20 +186,25 @@ const AdminDashboard = () => {
     const handleActividadSubmit = async (e) => {
         e.preventDefault();
         const form = e.target;
+        const nombre = form.nombre.value.trim();
         const datos = {
-            nombre: form.nombre.value,
+            nombre,
             tipo: form.tipo.value,
             horario: form.horario.value,
             cupo_max: parseInt(form.cupo_max.value)
         };
+        if (!esNombreValido(nombre)) return alert('El nombre de la actividad solo puede contener letras (sin números ni símbolos).');
         if (!datos.cupo_max || datos.cupo_max <= 0) return alert('Ingresá un cupo válido.');
-        const response = await apiFetch('http://localhost:3000/api/academico/actividades', {
-            method: 'POST',
+        const url = editingActividad
+            ? `http://localhost:3000/api/academico/actividades/${editingActividad.id}`
+            : 'http://localhost:3000/api/academico/actividades';
+        const response = await apiFetch(url, {
+            method: editingActividad ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
-        if (response.ok) { form.reset(); fetchActividades(); }
-        else { const d = await response.json(); alert(d.message || 'Error al crear actividad'); }
+        if (response.ok) { form.reset(); setEditingActividad(null); fetchActividades(); }
+        else { const d = await response.json(); alert(d.message || 'Error al guardar actividad'); }
     };
 
     const deleteActividad = async (id) => {
@@ -365,13 +382,17 @@ const AdminDashboard = () => {
         const form = e.target;
         const nombre = form.nombre.value.trim();
         if (!nombre) return alert('Ingresá el nombre del nivel.');
-        const response = await apiFetch('http://localhost:3000/api/academico/niveles', {
-            method: 'POST',
+        if (!esNombreValido(nombre)) return alert('El nombre del nivel solo puede contener letras (sin números ni símbolos).');
+        const url = editingNivel
+            ? `http://localhost:3000/api/academico/niveles/${editingNivel.id}`
+            : 'http://localhost:3000/api/academico/niveles';
+        const response = await apiFetch(url, {
+            method: editingNivel ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nombre })
         });
-        if (response.ok) { form.reset(); fetchNiveles(); }
-        else { const d = await response.json().catch(() => ({})); alert(d.message || 'Error al crear el nivel'); }
+        if (response.ok) { form.reset(); setEditingNivel(null); fetchNiveles(); }
+        else { const d = await response.json().catch(() => ({})); alert(d.message || 'Error al guardar el nivel'); }
     };
 
     const deleteNivel = async (id) => {
@@ -1034,8 +1055,11 @@ const AdminDashboard = () => {
                         Configurá los niveles (Inicial, Primario, Secundario u otros). Las divisiones se crean luego como cursos dentro de cada nivel.
                     </p>
                     <form onSubmit={handleNivelSubmit} style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                        <input type="text" name="nombre" placeholder="Nombre del nivel (Ej: Inicial)" required style={{ ...inputStyle, flex: 1, minWidth: '220px' }} />
-                        <button type="submit" className="btn btn-violet" style={{ whiteSpace: 'nowrap' }}>+ Crear Nivel</button>
+                        <input key={`nivel-${editingNivel?.id || 'new'}`} type="text" name="nombre" placeholder="Nombre del nivel (Ej: Inicial)" required style={{ ...inputStyle, flex: 1, minWidth: '220px' }} defaultValue={editingNivel?.nombre || ''} />
+                        <button type="submit" className="btn btn-violet" style={{ whiteSpace: 'nowrap' }}>{editingNivel ? 'Guardar Cambios' : '+ Crear Nivel'}</button>
+                        {editingNivel && (
+                            <button type="button" onClick={() => setEditingNivel(null)} className="btn btn-hero-outline" style={{ whiteSpace: 'nowrap', color: 'var(--blue)' }}>Cancelar</button>
+                        )}
                     </form>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                         {niveles.length === 0 ? (
@@ -1044,6 +1068,7 @@ const AdminDashboard = () => {
                             niveles.map(n => (
                                 <span key={n.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#eff6ff', color: 'var(--blue)', fontWeight: 700, fontSize: '0.85rem', padding: '6px 12px', borderRadius: '20px' }}>
                                     {n.nombre}
+                                    <button onClick={() => setEditingNivel(n)} title="Editar nivel" style={{ background: 'none', border: 'none', color: 'var(--blue)', fontWeight: 800, cursor: 'pointer', fontSize: '0.9rem', lineHeight: 1 }}>✎</button>
                                     <button onClick={() => deleteNivel(n.id)} title="Eliminar nivel" style={{ background: 'none', border: 'none', color: '#dc2626', fontWeight: 800, cursor: 'pointer', fontSize: '0.9rem', lineHeight: 1 }}>✕</button>
                                 </span>
                             ))
@@ -1455,14 +1480,17 @@ const AdminDashboard = () => {
                         background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '24px',
                         display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '12px', alignItems: 'end'
                     }}>
-                        <input type="text" name="nombre" placeholder="Nombre de la materia" required style={inputStyle} />
-                        <select name="curso_id" required style={inputStyle} defaultValue="">
+                        <input key={`materia-nombre-${editingMateria?.id || 'new'}`} type="text" name="nombre" placeholder="Nombre de la materia" required style={inputStyle} defaultValue={editingMateria?.nombre || ''} />
+                        <select key={`materia-curso-${editingMateria?.id || 'new'}`} name="curso_id" required style={inputStyle} defaultValue={editingMateria?.curso_id || ''}>
                             <option value="">Seleccionar curso...</option>
                             {cursos.map(c => (
                                 <option key={c.id} value={c.id}>{c.nivel_nombre} - {c.division}</option>
                             ))}
                         </select>
-                        <button type="submit" className="btn btn-violet" style={{ whiteSpace: 'nowrap' }}>+ Crear Materia</button>
+                        <button type="submit" className="btn btn-violet" style={{ whiteSpace: 'nowrap' }}>{editingMateria ? 'Guardar Cambios' : '+ Crear Materia'}</button>
+                        {editingMateria && (
+                            <button type="button" onClick={() => setEditingMateria(null)} className="btn btn-hero-outline" style={{ whiteSpace: 'nowrap', color: 'var(--blue)' }}>Cancelar</button>
+                        )}
                     </form>
 
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -1482,6 +1510,7 @@ const AdminDashboard = () => {
                                         <td style={tdStyle}><strong>{m.nombre}</strong></td>
                                         <td style={tdStyle}>{m.nivel_nombre ? `${m.nivel_nombre} - ${m.division}` : 'Sin curso'}</td>
                                         <td style={tdStyle}>
+                                            <button onClick={() => setEditingMateria(m)} style={{ background: 'none', border: 'none', color: 'var(--blue)', fontWeight: 700, cursor: 'pointer', marginRight: '10px' }}>Editar</button>
                                             <button onClick={() => deleteMateria(m.id)} style={{ background: 'none', border: 'none', color: '#dc2626', fontWeight: 700, cursor: 'pointer' }}>Eliminar</button>
                                         </td>
                                     </tr>
@@ -1503,15 +1532,18 @@ const AdminDashboard = () => {
                         background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '24px',
                         display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr 1fr auto', gap: '12px', alignItems: 'end'
                     }}>
-                        <input type="text" name="nombre" placeholder="Nombre (Ej: Fútbol)" required style={inputStyle} />
-                        <select name="tipo" required style={inputStyle} defaultValue="Deporte">
+                        <input key={`act-nombre-${editingActividad?.id || 'new'}`} type="text" name="nombre" placeholder="Nombre (Ej: Fútbol)" required style={inputStyle} defaultValue={editingActividad?.nombre || ''} />
+                        <select key={`act-tipo-${editingActividad?.id || 'new'}`} name="tipo" required style={inputStyle} defaultValue={editingActividad?.tipo || 'Deporte'}>
                             <option value="Deporte">Deporte</option>
                             <option value="Cultura">Cultura</option>
                             <option value="Idioma">Idioma</option>
                         </select>
-                        <input type="text" name="horario" placeholder="Horario (Ej: Lun y Mié 16hs)" style={inputStyle} />
-                        <input type="number" name="cupo_max" placeholder="Cupo" min="1" required style={inputStyle} />
-                        <button type="submit" className="btn btn-violet" style={{ whiteSpace: 'nowrap' }}>+ Crear</button>
+                        <input key={`act-horario-${editingActividad?.id || 'new'}`} type="text" name="horario" placeholder="Horario (Ej: Lun y Mié 16hs)" style={inputStyle} defaultValue={editingActividad?.horario || ''} />
+                        <input key={`act-cupo-${editingActividad?.id || 'new'}`} type="number" name="cupo_max" placeholder="Cupo" min="1" required style={inputStyle} defaultValue={editingActividad?.cupo_max || ''} />
+                        <button type="submit" className="btn btn-violet" style={{ whiteSpace: 'nowrap' }}>{editingActividad ? 'Guardar' : '+ Crear'}</button>
+                        {editingActividad && (
+                            <button type="button" onClick={() => setEditingActividad(null)} className="btn btn-hero-outline" style={{ whiteSpace: 'nowrap', color: 'var(--blue)' }}>Cancelar</button>
+                        )}
                     </form>
 
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -1539,6 +1571,7 @@ const AdminDashboard = () => {
                                             </span>
                                         </td>
                                         <td style={tdStyle}>
+                                            <button onClick={() => setEditingActividad(a)} style={{ background: 'none', border: 'none', color: 'var(--blue)', fontWeight: 700, cursor: 'pointer', marginRight: '10px' }}>Editar</button>
                                             <button onClick={() => deleteActividad(a.id)} style={{ background: 'none', border: 'none', color: '#dc2626', fontWeight: 700, cursor: 'pointer' }}>Eliminar</button>
                                         </td>
                                     </tr>

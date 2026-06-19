@@ -14,9 +14,22 @@ exports.getNiveles = (req, res) => {
 exports.createNivel = (req, res) => {
     const nombre = (req.body.nombre || '').trim();
     if (!nombre) return res.status(400).json({ message: "El nombre del nivel es obligatorio" });
+    if (!NOMBRE_REGEX.test(nombre)) return res.status(400).json({ message: "El nombre del nivel solo puede contener letras (sin números ni símbolos)" });
     db.run("INSERT INTO niveles (nombre) VALUES (?)", [nombre], function(err) {
         if (err) return res.status(500).json({ message: err.message });
         res.status(201).json({ id: this.lastID });
+    });
+};
+
+exports.updateNivel = (req, res) => {
+    const { id } = req.params;
+    const nombre = (req.body.nombre || '').trim();
+    if (!nombre) return res.status(400).json({ message: "El nombre del nivel es obligatorio" });
+    if (!NOMBRE_REGEX.test(nombre)) return res.status(400).json({ message: "El nombre del nivel solo puede contener letras (sin números ni símbolos)" });
+    db.run("UPDATE niveles SET nombre = ? WHERE id = ?", [nombre, id], function(err) {
+        if (err) return res.status(500).json({ message: err.message });
+        if (this.changes === 0) return res.status(404).json({ message: "Nivel no encontrado" });
+        res.json({ message: "Nivel actualizado correctamente" });
     });
 };
 
@@ -186,9 +199,25 @@ exports.createMateria = (req, res) => {
     if (!nombre || !curso_id) {
         return res.status(400).json({ message: "Nombre y curso son obligatorios" });
     }
+    if (!NOMBRE_REGEX.test(nombre)) return res.status(400).json({ message: "El nombre de la materia solo puede contener letras (sin números ni símbolos)" });
     db.run("INSERT INTO materias (nombre, curso_id) VALUES (?, ?)", [nombre, curso_id], function(err) {
         if (err) return res.status(500).json({ message: err.message });
         res.status(201).json({ id: this.lastID });
+    });
+};
+
+exports.updateMateria = (req, res) => {
+    const { id } = req.params;
+    const nombre = (req.body.nombre || '').trim();
+    const { curso_id } = req.body;
+    if (!nombre || !curso_id) {
+        return res.status(400).json({ message: "Nombre y curso son obligatorios" });
+    }
+    if (!NOMBRE_REGEX.test(nombre)) return res.status(400).json({ message: "El nombre de la materia solo puede contener letras (sin números ni símbolos)" });
+    db.run("UPDATE materias SET nombre = ?, curso_id = ? WHERE id = ?", [nombre, curso_id, id], function(err) {
+        if (err) return res.status(500).json({ message: err.message });
+        if (this.changes === 0) return res.status(404).json({ message: "Materia no encontrada" });
+        res.json({ message: "Materia actualizada correctamente" });
     });
 };
 
@@ -222,6 +251,7 @@ exports.createActividad = (req, res) => {
     if (!nombre || !tipo || cupo_max === undefined || cupo_max === null || cupo_max === '') {
         return res.status(400).json({ message: "Nombre, tipo y cupo son obligatorios" });
     }
+    if (!NOMBRE_REGEX.test(nombre)) return res.status(400).json({ message: "El nombre de la actividad solo puede contener letras (sin números ni símbolos)" });
     const cupoNum = Number(cupo_max);
     if (!Number.isInteger(cupoNum) || cupoNum <= 0) {
         return res.status(400).json({ message: "El cupo debe ser un número entero mayor a 0" });
@@ -232,6 +262,29 @@ exports.createActividad = (req, res) => {
         function(err) {
             if (err) return res.status(500).json({ message: err.message });
             res.status(201).json({ id: this.lastID });
+        }
+    );
+};
+
+exports.updateActividad = (req, res) => {
+    const { id } = req.params;
+    const nombre = (req.body.nombre || '').trim();
+    const { tipo, horario, cupo_max } = req.body;
+    if (!nombre || !tipo || cupo_max === undefined || cupo_max === null || cupo_max === '') {
+        return res.status(400).json({ message: "Nombre, tipo y cupo son obligatorios" });
+    }
+    if (!NOMBRE_REGEX.test(nombre)) return res.status(400).json({ message: "El nombre de la actividad solo puede contener letras (sin números ni símbolos)" });
+    const cupoNum = Number(cupo_max);
+    if (!Number.isInteger(cupoNum) || cupoNum <= 0) {
+        return res.status(400).json({ message: "El cupo debe ser un número entero mayor a 0" });
+    }
+    db.run(
+        "UPDATE actividades_extra SET nombre = ?, tipo = ?, horario = ?, cupo_max = ? WHERE id = ?",
+        [nombre, tipo, horario || null, cupoNum, id],
+        function(err) {
+            if (err) return res.status(500).json({ message: err.message });
+            if (this.changes === 0) return res.status(404).json({ message: "Actividad no encontrada" });
+            res.json({ message: "Actividad actualizada correctamente" });
         }
     );
 };

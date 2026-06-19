@@ -72,7 +72,7 @@ const Noticias = () => {
   return (
     <section className="section noticias" id="noticias" ref={sectionRef}>
       <div className="container">
-        <h2 className={`section-title ${fade()}`}>Últimas Noticias</h2>
+        <h2 className={`section-title ${fade()}`}>Últimas Noticias y Actividades</h2>
         <p className={`section-sub ${fade()}`}>Enterate de todo lo que pasa en nuestra institución.</p>
 
         <div className="noticias-grid">
