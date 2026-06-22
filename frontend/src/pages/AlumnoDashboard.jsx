@@ -1,3 +1,4 @@
+import { API_URL } from '../config';
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
@@ -24,7 +25,7 @@ const AlumnoDashboard = () => {
     useEffect(() => {
         const fetchNotificaciones = async () => {
             try {
-                const response = await apiFetch('http://localhost:3000/api/comunicacion/notificaciones');
+                const response = await apiFetch(`${API_URL}/api/comunicacion/notificaciones`);
                 if (response.ok) setNotificaciones(await response.json());
             } catch (error) {
                 console.error('Error al cargar notificaciones:', error);
@@ -37,8 +38,8 @@ const AlumnoDashboard = () => {
     const fetchActividades = async () => {
         try {
             const [resAct, resMis] = await Promise.all([
-                apiFetch('http://localhost:3000/api/academico/actividades'),
-                apiFetch('http://localhost:3000/api/academico/mis-inscripciones')
+                apiFetch(`${API_URL}/api/academico/actividades`),
+                apiFetch(`${API_URL}/api/academico/mis-inscripciones`)
             ]);
             if (resAct.ok) setActividades(await resAct.json());
             if (resMis.ok) setMisInscripciones(await resMis.json());
@@ -50,7 +51,7 @@ const AlumnoDashboard = () => {
     const estaInscripto = (actividadId) => misInscripciones.some(a => a.id === actividadId);
 
     const inscribirse = async (actividadId) => {
-        const response = await apiFetch('http://localhost:3000/api/academico/inscribir-actividad', {
+        const response = await apiFetch(`${API_URL}/api/academico/inscribir-actividad`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ actividad_id: actividadId })
@@ -61,7 +62,7 @@ const AlumnoDashboard = () => {
     };
 
     const cancelarInscripcion = async (actividadId) => {
-        const response = await apiFetch(`http://localhost:3000/api/academico/desinscribir-actividad/${actividadId}`, { method: 'DELETE' });
+        const response = await apiFetch(`${API_URL}/api/academico/desinscribir-actividad/${actividadId}`, { method: 'DELETE' });
         if (response.ok) fetchActividades();
     };
 

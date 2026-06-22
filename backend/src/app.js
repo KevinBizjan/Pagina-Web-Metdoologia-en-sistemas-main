@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -21,9 +23,23 @@ app.use('/api/financiero', require('./routes/financiero.routes'));
 app.use('/api/servicios', require('./routes/servicios.routes'));
 app.use('/api/comunicacion', require('./routes/comunicacion.routes'));
 
-// Rutas base (Placeholder)
-app.get('/', (req, res) => {
+// Health check de la API (útil para monitoreo del deploy)
+app.get('/api/health', (req, res) => {
     res.json({ message: 'API Educar para Transformar - Activa' });
 });
+
+// --- Servir el frontend compilado (despliegue de un solo servicio) ---
+// En producción Express sirve el build de Vite (frontend/dist) desde el mismo
+// dominio, así no hay CORS ni una segunda URL que coordinar.
+// En desarrollo esta carpeta no existe y el bloque se omite (usas `vite dev`).
+const frontendDist = path.join(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+    app.use(express.static(frontendDist));
+    // Fallback SPA: cualquier ruta que NO sea /api/* devuelve index.html
+    // para que React Router maneje el enrutamiento del lado del cliente.
+    app.get(/^\/(?!api\/).*/, (req, res) => {
+        res.sendFile(path.join(frontendDist, 'index.html'));
+    });
+}
 
 module.exports = app;

@@ -1,3 +1,4 @@
+import { API_URL } from '../config';
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
@@ -32,7 +33,7 @@ const DocenteDashboard = () => {
 
     const fetchActividades = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/academico/actividades');
+            const response = await apiFetch(`${API_URL}/api/academico/actividades`);
             if (response.ok) {
                 const data = await response.json();
                 setActividades(data);
@@ -45,7 +46,7 @@ const DocenteDashboard = () => {
 
     const fetchInscriptos = async (actId) => {
         try {
-            const response = await apiFetch(`http://localhost:3000/api/academico/actividades/${actId}/inscriptos`);
+            const response = await apiFetch(`${API_URL}/api/academico/actividades/${actId}/inscriptos`);
             if (response.ok) {
                 const data = await response.json();
                 setInscriptos(data.map(i => ({ ...i, asistencia: 'Presente', notaTmp: '' })));
@@ -67,7 +68,7 @@ const DocenteDashboard = () => {
 
     const saveAsistenciaActividad = async (alumnoId, estado) => {
         try {
-            const r = await apiFetch('http://localhost:3000/api/academico/actividades/asistencia', {
+            const r = await apiFetch(`${API_URL}/api/academico/actividades/asistencia`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ actividad_id: parseInt(actividadSel), alumno_id: alumnoId, estado })
@@ -81,7 +82,7 @@ const DocenteDashboard = () => {
         if (nota === '' || nota === undefined) return alert('Ingrese una nota');
         if (!notaValida(nota)) return alert('La nota debe ser un número entero entre 1 y 10 (sin decimales ni texto).');
         try {
-            const r = await apiFetch('http://localhost:3000/api/academico/actividades/calificacion', {
+            const r = await apiFetch(`${API_URL}/api/academico/actividades/calificacion`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ actividad_id: parseInt(actividadSel), alumno_id: alumnoId, nota })
@@ -93,7 +94,7 @@ const DocenteDashboard = () => {
 
     const fetchAlumnos = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/academico/alumnos');
+            const response = await apiFetch(`${API_URL}/api/academico/alumnos`);
             const data = await response.json();
             if (response.ok) {
                 setAlumnos(data.map(a => ({ ...a, asistencia: 'Presente', notaTmp: '' })));
@@ -107,7 +108,7 @@ const DocenteDashboard = () => {
 
     const fetchMaterias = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/academico/materias');
+            const response = await apiFetch(`${API_URL}/api/academico/materias`);
             if (response.ok) {
                 const data = await response.json();
                 setMaterias(data);
@@ -120,7 +121,7 @@ const DocenteDashboard = () => {
 
     const fetchInstalaciones = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/servicios/instalaciones');
+            const response = await apiFetch(`${API_URL}/api/servicios/instalaciones`);
             if (response.ok) setInstalaciones(await response.json());
         } catch (error) {
             console.error('Error instalaciones:', error);
@@ -147,7 +148,7 @@ const DocenteDashboard = () => {
         if (alumnos.length === 0) return alert('No hay alumnos para registrar.');
         try {
             const results = await Promise.all(alumnos.map(a =>
-                apiFetch('http://localhost:3000/api/academico/asistencias', {
+                apiFetch(`${API_URL}/api/academico/asistencias`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -173,7 +174,7 @@ const DocenteDashboard = () => {
         if (nota === '' || nota === undefined) return alert('Ingrese una nota');
         if (!notaValida(nota)) return alert('La nota debe ser un número entero entre 1 y 10 (sin decimales ni texto).');
         try {
-            const response = await apiFetch('http://localhost:3000/api/academico/calificaciones', {
+            const response = await apiFetch(`${API_URL}/api/academico/calificaciones`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -196,7 +197,7 @@ const DocenteDashboard = () => {
     const publicarAviso = async () => {
         if (!aviso) return;
         try {
-            const response = await apiFetch('http://localhost:3000/api/comunicacion/notificaciones', {
+            const response = await apiFetch(`${API_URL}/api/comunicacion/notificaciones`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -241,7 +242,7 @@ const DocenteDashboard = () => {
         };
         if (data.descripcion.length < 10) return alert('La descripción debe tener al menos 10 caracteres.');
         try {
-            const r = await apiFetch('http://localhost:3000/api/servicios/enfermeria/incidencia', {
+            const r = await apiFetch(`${API_URL}/api/servicios/enfermeria/incidencia`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -260,7 +261,7 @@ const DocenteDashboard = () => {
             observaciones: form.observaciones.value
         };
         try {
-            const r = await apiFetch('http://localhost:3000/api/servicios/comedor/asistencia', {
+            const r = await apiFetch(`${API_URL}/api/servicios/comedor/asistencia`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -282,7 +283,7 @@ const DocenteDashboard = () => {
             reservado_por: JSON.parse(localStorage.getItem('user') || '{}').id || null
         };
         try {
-            const r = await apiFetch('http://localhost:3000/api/servicios/instalaciones/reservar', {
+            const r = await apiFetch(`${API_URL}/api/servicios/instalaciones/reservar`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)

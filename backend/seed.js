@@ -123,5 +123,12 @@ function seedDatosPrueba() {
     console.log('Datos de prueba creados.');
 }
 
-// Esperar a que la DB se inicialice (config/database.js lo hace al importar)
-setTimeout(seed, 1000);
+// Exportamos seed para poder llamarlo desde el arranque del servidor (index.js)
+// sin disparar la siembra solo por importar el módulo.
+module.exports = seed;
+
+// Si se ejecuta directamente (`node seed.js`), sembrar.
+// Esperar a que la DB se inicialice (config/database.js lo hace al importar).
+if (require.main === module) {
+    setTimeout(seed, 1000);
+}

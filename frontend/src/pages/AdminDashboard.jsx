@@ -1,3 +1,4 @@
+import { API_URL } from '../config';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
@@ -51,7 +52,7 @@ const AdminDashboard = () => {
 
     const fetchUsuarios = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/auth/users');
+            const response = await apiFetch(`${API_URL}/api/auth/users`);
             if (response.ok) setUsuarios(await response.json());
         } catch (error) {
             console.error('Error usuarios:', error);
@@ -67,7 +68,7 @@ const AdminDashboard = () => {
             password: form.password.value,
             rol: form.rol.value
         };
-        const response = await apiFetch('http://localhost:3000/api/auth/users', {
+        const response = await apiFetch(`${API_URL}/api/auth/users`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
@@ -77,7 +78,7 @@ const AdminDashboard = () => {
     };
 
     const updateUserRol = async (id, rol) => {
-        const response = await apiFetch(`http://localhost:3000/api/auth/users/${id}/rol`, {
+        const response = await apiFetch(`${API_URL}/api/auth/users/${id}/rol`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ rol })
@@ -88,14 +89,14 @@ const AdminDashboard = () => {
 
     const deleteUsuario = async (id) => {
         if (!window.confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
-        const response = await apiFetch(`http://localhost:3000/api/auth/users/${id}`, { method: 'DELETE' });
+        const response = await apiFetch(`${API_URL}/api/auth/users/${id}`, { method: 'DELETE' });
         if (response.ok) fetchUsuarios();
         else { const d = await response.json(); alert(d.message || 'Error al eliminar el usuario'); }
     };
 
     const fetchHorarios = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/academico/horarios');
+            const response = await apiFetch(`${API_URL}/api/academico/horarios`);
             if (response.ok) setHorarios(await response.json());
         } catch (error) {
             console.error('Error horarios:', error);
@@ -104,7 +105,7 @@ const AdminDashboard = () => {
 
     const fetchDocentes = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/academico/docentes');
+            const response = await apiFetch(`${API_URL}/api/academico/docentes`);
             if (response.ok) setDocentes(await response.json());
         } catch (error) {
             console.error('Error docentes:', error);
@@ -125,7 +126,7 @@ const AdminDashboard = () => {
         if (!datos.materia_id || !datos.docente_id || !datos.aula_id || !datos.dia_semana) {
             return alert('Completá materia, docente, aula y día.');
         }
-        const response = await apiFetch('http://localhost:3000/api/academico/horarios', {
+        const response = await apiFetch(`${API_URL}/api/academico/horarios`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
@@ -136,13 +137,13 @@ const AdminDashboard = () => {
 
     const deleteHorario = async (id) => {
         if (!window.confirm('¿Eliminar este horario?')) return;
-        const response = await apiFetch(`http://localhost:3000/api/academico/horarios/${id}`, { method: 'DELETE' });
+        const response = await apiFetch(`${API_URL}/api/academico/horarios/${id}`, { method: 'DELETE' });
         if (response.ok) fetchHorarios();
     };
 
     const fetchMaterias = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/academico/materias');
+            const response = await apiFetch(`${API_URL}/api/academico/materias`);
             if (response.ok) setMaterias(await response.json());
         } catch (error) {
             console.error('Error materias:', error);
@@ -151,7 +152,7 @@ const AdminDashboard = () => {
 
     const fetchActividades = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/academico/actividades');
+            const response = await apiFetch(`${API_URL}/api/academico/actividades`);
             if (response.ok) setActividades(await response.json());
         } catch (error) {
             console.error('Error actividades:', error);
@@ -166,8 +167,8 @@ const AdminDashboard = () => {
         if (!datos.curso_id) return alert('Seleccioná un curso para la materia.');
         if (!esNombreValido(nombre)) return alert('El nombre de la materia solo puede contener letras (sin números ni símbolos).');
         const url = editingMateria
-            ? `http://localhost:3000/api/academico/materias/${editingMateria.id}`
-            : 'http://localhost:3000/api/academico/materias';
+            ? `${API_URL}/api/academico/materias/${editingMateria.id}`
+            : `${API_URL}/api/academico/materias`;
         const response = await apiFetch(url, {
             method: editingMateria ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -179,7 +180,7 @@ const AdminDashboard = () => {
 
     const deleteMateria = async (id) => {
         if (!window.confirm('¿Eliminar esta materia?')) return;
-        const response = await apiFetch(`http://localhost:3000/api/academico/materias/${id}`, { method: 'DELETE' });
+        const response = await apiFetch(`${API_URL}/api/academico/materias/${id}`, { method: 'DELETE' });
         if (response.ok) fetchMaterias();
     };
 
@@ -196,8 +197,8 @@ const AdminDashboard = () => {
         if (!esNombreValido(nombre)) return alert('El nombre de la actividad solo puede contener letras (sin números ni símbolos).');
         if (!datos.cupo_max || datos.cupo_max <= 0) return alert('Ingresá un cupo válido.');
         const url = editingActividad
-            ? `http://localhost:3000/api/academico/actividades/${editingActividad.id}`
-            : 'http://localhost:3000/api/academico/actividades';
+            ? `${API_URL}/api/academico/actividades/${editingActividad.id}`
+            : `${API_URL}/api/academico/actividades`;
         const response = await apiFetch(url, {
             method: editingActividad ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -209,13 +210,13 @@ const AdminDashboard = () => {
 
     const deleteActividad = async (id) => {
         if (!window.confirm('¿Eliminar esta actividad? Se borrarán también sus inscripciones.')) return;
-        const response = await apiFetch(`http://localhost:3000/api/academico/actividades/${id}`, { method: 'DELETE' });
+        const response = await apiFetch(`${API_URL}/api/academico/actividades/${id}`, { method: 'DELETE' });
         if (response.ok) fetchActividades();
     };
 
     const fetchReportesStats = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/comunicacion/reportes/stats');
+            const response = await apiFetch(`${API_URL}/api/comunicacion/reportes/stats`);
             if (response.ok) setReportesStats(await response.json());
         } catch (error) { console.error(error); }
     };
@@ -241,7 +242,7 @@ const AdminDashboard = () => {
     const exportLegajos = async () => {
         let data = alumnos;
         if (!data || data.length === 0) {
-            const r = await apiFetch('http://localhost:3000/api/academico/alumnos');
+            const r = await apiFetch(`${API_URL}/api/academico/alumnos`);
             if (r.ok) data = await r.json();
         }
         if (!data || data.length === 0) return alert('No hay alumnos para exportar.');
@@ -255,7 +256,7 @@ const AdminDashboard = () => {
     const exportPersonal = async () => {
         let data = personal;
         if (!data || data.length === 0) {
-            const r = await apiFetch('http://localhost:3000/api/financiero/personal');
+            const r = await apiFetch(`${API_URL}/api/financiero/personal`);
             if (r.ok) data = await r.json();
         }
         if (!data || data.length === 0) return alert('No hay personal para exportar.');
@@ -268,7 +269,7 @@ const AdminDashboard = () => {
 
     const exportDeudores = async () => {
         try {
-            const r = await apiFetch('http://localhost:3000/api/financiero/deudores');
+            const r = await apiFetch(`${API_URL}/api/financiero/deudores`);
             if (!r.ok) return alert('No se pudo obtener el listado de deudores.');
             const data = await r.json();
             if (data.length === 0) return alert('No hay deudores registrados.');
@@ -282,7 +283,7 @@ const AdminDashboard = () => {
 
     const exportReporteAcademico = async () => {
         try {
-            const r = await apiFetch('http://localhost:3000/api/comunicacion/reportes/academico');
+            const r = await apiFetch(`${API_URL}/api/comunicacion/reportes/academico`);
             if (!r.ok) return alert('No se pudo obtener el reporte académico.');
             const data = await r.json();
             if (data.length === 0) return alert('No hay calificaciones registradas.');
@@ -296,7 +297,7 @@ const AdminDashboard = () => {
 
     const exportReporteFinanciero = async () => {
         try {
-            const r = await apiFetch('http://localhost:3000/api/comunicacion/reportes/financiero');
+            const r = await apiFetch(`${API_URL}/api/comunicacion/reportes/financiero`);
             if (!r.ok) return alert('No se pudo obtener el reporte financiero.');
             const data = await r.json();
             if (data.length === 0) return alert('No hay pagos registrados.');
@@ -311,7 +312,7 @@ const AdminDashboard = () => {
     const exportPlanillaAsistencia = async () => {
         let data = alumnos;
         if (!data || data.length === 0) {
-            const r = await apiFetch('http://localhost:3000/api/academico/alumnos');
+            const r = await apiFetch(`${API_URL}/api/academico/alumnos`);
             if (r.ok) data = await r.json();
         }
         if (!data || data.length === 0) return alert('No hay alumnos para generar la planilla.');
@@ -326,7 +327,7 @@ const AdminDashboard = () => {
     const fetchFinanzas = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/financiero/cuotas-config', {
+            const response = await fetch(`${API_URL}/api/financiero/cuotas-config`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -337,7 +338,7 @@ const AdminDashboard = () => {
     const fetchServicios = async () => {
         try {
             const token = localStorage.getItem('token');
-            const resTrans = await fetch('http://localhost:3000/api/servicios/transporte/rutas', { headers: { 'Authorization': `Bearer ${token}` } });
+            const resTrans = await fetch(`${API_URL}/api/servicios/transporte/rutas`, { headers: { 'Authorization': `Bearer ${token}` } });
             if (resTrans.ok) setRutasTransporte(await resTrans.json());
         } catch (error) { console.error(error); }
     };
@@ -346,7 +347,7 @@ const AdminDashboard = () => {
         if (!window.confirm('¿Eliminar curso?')) return;
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/academico/cursos/${id}`, {
+            const response = await fetch(`${API_URL}/api/academico/cursos/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -358,7 +359,7 @@ const AdminDashboard = () => {
         if (!window.confirm('¿Eliminar aula?')) return;
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/academico/aulas/${id}`, {
+            const response = await fetch(`${API_URL}/api/academico/aulas/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -369,7 +370,7 @@ const AdminDashboard = () => {
     const fetchNiveles = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/academico/niveles', {
+            const response = await fetch(`${API_URL}/api/academico/niveles`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -384,8 +385,8 @@ const AdminDashboard = () => {
         if (!nombre) return alert('Ingresá el nombre del nivel.');
         if (!esNombreValido(nombre)) return alert('El nombre del nivel solo puede contener letras (sin números ni símbolos).');
         const url = editingNivel
-            ? `http://localhost:3000/api/academico/niveles/${editingNivel.id}`
-            : 'http://localhost:3000/api/academico/niveles';
+            ? `${API_URL}/api/academico/niveles/${editingNivel.id}`
+            : `${API_URL}/api/academico/niveles`;
         const response = await apiFetch(url, {
             method: editingNivel ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -397,7 +398,7 @@ const AdminDashboard = () => {
 
     const deleteNivel = async (id) => {
         if (!window.confirm('¿Eliminar este nivel educativo?')) return;
-        const response = await apiFetch(`http://localhost:3000/api/academico/niveles/${id}`, { method: 'DELETE' });
+        const response = await apiFetch(`${API_URL}/api/academico/niveles/${id}`, { method: 'DELETE' });
         if (response.ok) fetchNiveles();
         else { const d = await response.json().catch(() => ({})); alert(d.message || 'No se pudo eliminar el nivel'); }
     };
@@ -406,7 +407,7 @@ const AdminDashboard = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/financiero/personal', {
+            const response = await fetch(`${API_URL}/api/financiero/personal`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -425,7 +426,7 @@ const AdminDashboard = () => {
         if (!window.confirm('¿Está seguro de eliminar a este miembro del personal?')) return;
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/financiero/personal/${id}`, {
+            const response = await fetch(`${API_URL}/api/financiero/personal/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -452,8 +453,8 @@ const AdminDashboard = () => {
         try {
             const token = localStorage.getItem('token');
             const url = editingPersonal
-                ? `http://localhost:3000/api/financiero/personal/${editingPersonal.id}`
-                : 'http://localhost:3000/api/financiero/personal';
+                ? `${API_URL}/api/financiero/personal/${editingPersonal.id}`
+                : `${API_URL}/api/financiero/personal`;
             const response = await fetch(url, {
                 method: editingPersonal ? 'PUT' : 'POST',
                 headers: {
@@ -487,7 +488,7 @@ const AdminDashboard = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/academico/cursos', {
+            const response = await fetch(`${API_URL}/api/academico/cursos`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -514,7 +515,7 @@ const AdminDashboard = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/academico/aulas', {
+            const response = await fetch(`${API_URL}/api/academico/aulas`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -546,8 +547,8 @@ const AdminDashboard = () => {
         try {
             const token = localStorage.getItem('token');
             const url = editingAlumno 
-                ? `http://localhost:3000/api/academico/alumnos/${editingAlumno.id}`
-                : 'http://localhost:3000/api/academico/alumnos';
+                ? `${API_URL}/api/academico/alumnos/${editingAlumno.id}`
+                : `${API_URL}/api/academico/alumnos`;
             
             const response = await fetch(url, {
                 method: editingAlumno ? 'PUT' : 'POST',
@@ -574,7 +575,7 @@ const AdminDashboard = () => {
         if (!window.confirm('¿Está seguro de eliminar este legajo?')) return;
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/academico/alumnos/${id}`, {
+            const response = await fetch(`${API_URL}/api/academico/alumnos/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -589,8 +590,8 @@ const AdminDashboard = () => {
         try {
             const token = localStorage.getItem('token');
             const [resCursos, resAulas] = await Promise.all([
-                fetch('http://localhost:3000/api/academico/cursos', { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch('http://localhost:3000/api/academico/aulas', { headers: { 'Authorization': `Bearer ${token}` } })
+                fetch(`${API_URL}/api/academico/cursos`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch(`${API_URL}/api/academico/aulas`, { headers: { 'Authorization': `Bearer ${token}` } })
             ]);
             const [dataCursos, dataAulas] = await Promise.all([resCursos.json(), resAulas.json()]);
             setCursos(dataCursos);
@@ -605,7 +606,7 @@ const AdminDashboard = () => {
     const fetchPreinscripciones = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/preinscripciones', {
+            const response = await fetch(`${API_URL}/api/preinscripciones`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -621,7 +622,7 @@ const AdminDashboard = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/academico/alumnos', {
+            const response = await fetch(`${API_URL}/api/academico/alumnos`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -636,7 +637,7 @@ const AdminDashboard = () => {
     const updateStatus = async (id, nuevoEstado) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/preinscripciones/${id}/status`, {
+            const response = await fetch(`${API_URL}/api/preinscripciones/${id}/status`, {
                 method: 'PATCH',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -674,7 +675,7 @@ const AdminDashboard = () => {
         };
 
         try {
-            const response = await apiFetch('http://localhost:3000/api/financiero/cuotas-config', {
+            const response = await apiFetch(`${API_URL}/api/financiero/cuotas-config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(cuotaData)
@@ -686,7 +687,7 @@ const AdminDashboard = () => {
 
     const fetchPagos = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/financiero/pagos');
+            const response = await apiFetch(`${API_URL}/api/financiero/pagos`);
             if (response.ok) setPagos(await response.json());
         } catch (error) { console.error('Error pagos:', error); }
     };
@@ -694,7 +695,7 @@ const AdminDashboard = () => {
     // Descarga el comprobante de pago en PDF (se solicita con el token y se guarda como archivo).
     const descargarComprobante = async (pagoId) => {
         try {
-            const response = await apiFetch(`http://localhost:3000/api/financiero/comprobante/${pagoId}`);
+            const response = await apiFetch(`${API_URL}/api/financiero/comprobante/${pagoId}`);
             if (!response.ok) {
                 const d = await response.json().catch(() => ({}));
                 return alert(d.message || 'No se pudo generar el comprobante');
@@ -724,7 +725,7 @@ const AdminDashboard = () => {
             return alert('Complete alumno y monto válido (> 0).');
         }
         try {
-            const response = await apiFetch('http://localhost:3000/api/financiero/pagos', {
+            const response = await apiFetch(`${API_URL}/api/financiero/pagos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(pagoData)
@@ -752,7 +753,7 @@ const AdminDashboard = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/servicios/transporte/rutas', {
+            const response = await fetch(`${API_URL}/api/servicios/transporte/rutas`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -773,7 +774,7 @@ const AdminDashboard = () => {
             punto_encuentro: form.punto_encuentro.value.trim()
         };
         if (!datos.alumno_id || !datos.ruta_id) return alert('Seleccioná alumno y ruta.');
-        const response = await apiFetch('http://localhost:3000/api/servicios/transporte/asignar', {
+        const response = await apiFetch(`${API_URL}/api/servicios/transporte/asignar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
@@ -786,7 +787,7 @@ const AdminDashboard = () => {
         if (!window.confirm('¿Eliminar ruta?')) return;
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/servicios/transporte/rutas/${id}`, {
+            const response = await fetch(`${API_URL}/api/servicios/transporte/rutas/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -798,7 +799,7 @@ const AdminDashboard = () => {
         if (!window.confirm('¿Eliminar esta configuración de cuota?')) return;
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/financiero/cuotas-config/${id}`, {
+            const response = await fetch(`${API_URL}/api/financiero/cuotas-config/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

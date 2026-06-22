@@ -1,3 +1,4 @@
+import { API_URL } from '../config';
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
@@ -22,7 +23,7 @@ const PadreDashboard = () => {
 
     const fetchPagos = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/financiero/pagos');
+            const response = await apiFetch(`${API_URL}/api/financiero/pagos`);
             if (response.ok) setPagos(await response.json());
         } catch (error) {
             console.error(error);
@@ -32,7 +33,7 @@ const PadreDashboard = () => {
     // Descarga el comprobante de pago en PDF (solo lectura, de los hijos vinculados).
     const descargarComprobante = async (pagoId) => {
         try {
-            const response = await apiFetch(`http://localhost:3000/api/financiero/comprobante/${pagoId}`);
+            const response = await apiFetch(`${API_URL}/api/financiero/comprobante/${pagoId}`);
             if (!response.ok) {
                 const d = await response.json().catch(() => ({}));
                 return alert(d.message || 'No se pudo generar el comprobante');
@@ -54,7 +55,7 @@ const PadreDashboard = () => {
 
     const fetchDisponibles = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/academico/alumnos-disponibles');
+            const response = await apiFetch(`${API_URL}/api/academico/alumnos-disponibles`);
             if (response.ok) setDisponibles(await response.json());
         } catch (error) {
             console.error(error);
@@ -64,7 +65,7 @@ const PadreDashboard = () => {
     const vincularHijo = async () => {
         if (!alumnoSel) return alert('Seleccioná un alumno para vincular.');
         try {
-            const response = await apiFetch('http://localhost:3000/api/academico/vincular-hijo', {
+            const response = await apiFetch(`${API_URL}/api/academico/vincular-hijo`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ alumno_id: alumnoSel })
@@ -85,7 +86,7 @@ const PadreDashboard = () => {
     const desvincularHijo = async (id, nombreCompleto) => {
         if (!window.confirm(`¿Desvincular a ${nombreCompleto} de tu cuenta?`)) return;
         try {
-            const response = await apiFetch(`http://localhost:3000/api/academico/desvincular-hijo/${id}`, {
+            const response = await apiFetch(`${API_URL}/api/academico/desvincular-hijo/${id}`, {
                 method: 'DELETE'
             });
             const data = await response.json();
@@ -102,7 +103,7 @@ const PadreDashboard = () => {
 
     const fetchNotificaciones = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/comunicacion/notificaciones');
+            const response = await apiFetch(`${API_URL}/api/comunicacion/notificaciones`);
             if (response.ok) setNotificaciones(await response.json());
         } catch (error) {
             console.error(error);
@@ -111,14 +112,14 @@ const PadreDashboard = () => {
 
     const fetchHijosYSaldos = async () => {
         try {
-            const response = await apiFetch('http://localhost:3000/api/academico/mis-hijos');
+            const response = await apiFetch(`${API_URL}/api/academico/mis-hijos`);
             if (!response.ok) return;
             const lista = await response.json();
             const saldos = await Promise.all(lista.map(async (h) => {
                 // Saldo + resumen académico real (promedio, asistencia, faltas) en paralelo.
                 const [rs, rr] = await Promise.all([
-                    apiFetch(`http://localhost:3000/api/financiero/saldo/${h.id}`),
-                    apiFetch(`http://localhost:3000/api/academico/mis-hijos/${h.id}/resumen`)
+                    apiFetch(`${API_URL}/api/financiero/saldo/${h.id}`),
+                    apiFetch(`${API_URL}/api/academico/mis-hijos/${h.id}/resumen`)
                 ]);
                 const s = rs.ok ? await rs.json() : { saldo_pendiente: 0 };
                 const resumen = rr.ok ? await rr.json() : {};
