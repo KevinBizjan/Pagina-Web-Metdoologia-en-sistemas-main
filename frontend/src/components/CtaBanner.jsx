@@ -6,7 +6,7 @@ const CtaBanner = () => {
       <h2>¡Inscripciones 2027 Abiertas!</h2>
       <p>Asegurá el lugar de tu hijo/a en nuestra institución. Vacantes limitadas en todos los niveles.</p>
       <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', position: 'relative' }}>
-        <a href="#preinscripcion" className="btn-hero btn-hero-orange">📋 Preinscribirse Ahora</a>
+        <a href="#preinscripcion" className="btn-hero btn-hero-orange">📋 Reservar Lugar</a>
         <a href="#servicios" className="btn-hero btn-hero-outline">Conocer Más Servicios</a>
       </div>
     </div>

@@ -2,12 +2,15 @@ import { API_URL } from '../config';
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
+import Toast from '../components/Toast';
 
 const AlumnoDashboard = () => {
     const { apiFetch } = useAuth();
     const [notificaciones, setNotificaciones] = useState([]);
     const [actividades, setActividades] = useState([]);
     const [misInscripciones, setMisInscripciones] = useState([]);
+    const [toast, setToast] = useState({ message: '', type: 'success' });
+    const showToast = (message, type = 'success') => setToast({ message, type });
 
     const materias = [
         { nombre: 'Matemáticas', docente: 'Prof. Gómez', nota: '9' },
@@ -57,13 +60,20 @@ const AlumnoDashboard = () => {
             body: JSON.stringify({ actividad_id: actividadId })
         });
         const data = await response.json();
-        if (response.ok) fetchActividades();
-        else alert(data.message || 'No te pudiste inscribir.');
+        if (response.ok) {
+            showToast('Inscripción realizada con éxito', 'success');
+            fetchActividades();
+        } else {
+            showToast(data.message || 'No te pudiste inscribir.', 'error');
+        }
     };
 
     const cancelarInscripcion = async (actividadId) => {
         const response = await apiFetch(`${API_URL}/api/academico/desinscribir-actividad/${actividadId}`, { method: 'DELETE' });
-        if (response.ok) fetchActividades();
+        if (response.ok) {
+            showToast('Inscripción cancelada', 'info');
+            fetchActividades();
+        }
     };
 
     return (
@@ -154,6 +164,11 @@ const AlumnoDashboard = () => {
                     </div>
                 </div>
             </div>
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                onClose={() => setToast({ message: '', type: 'success' })}
+            />
         </DashboardLayout>
     );
 };

@@ -522,8 +522,6 @@ exports.registrarAsistencia = (req, res) => {
 exports.cargarCalificacion = (req, res) => {
     const { alumno_id, materia_id, nota, trimestre } = req.body;
     if (!alumno_id) return res.status(400).json({ message: "Datos incompletos" });
-    // La nota debe ser estrictamente un entero entre 1 y 10:
-    // se rechazan vacíos, texto ("ocho"), alfanuméricos ("7a"), decimales (7.5) y negativos (-3).
     if (nota === undefined || nota === null || String(nota).trim() === '') {
         return res.status(400).json({ message: "La nota es obligatoria" });
     }
@@ -534,9 +532,76 @@ exports.cargarCalificacion = (req, res) => {
     if (notaNum < 1 || notaNum > 10) {
         return res.status(400).json({ message: "La nota debe estar en el rango de 1 a 10" });
     }
-    db.run("INSERT INTO calificaciones (alumno_id, materia_id, nota, trimestre) VALUES (?, ?, ?, ?)", [alumno_id, materia_id, notaNum, trimestre], function(err) {
+    const trim = trimestre || 1;
+
+    // Buscar si ya existe una nota para este alumno, materia y trimestre
+    db.get(
+        "SELECT id FROM calificaciones WHERE alumno_id = ? AND materia_id = ? AND trimestre = ?",
+        [alumno_id, materia_id, trim],
+        (err, row) => {
+            if (err) return res.status(500).json({ message: err.message });
+            if (row) {
+                // Actualizar la calificación existente
+                db.run("UPDATE calificaciones SET nota = ? WHERE id = ?", [notaNum, row.id], function(err) {
+                    if (err) return res.status(500).json({ message: err.message });
+                    res.json({ message: "Calificación actualizada con éxito", id: row.id });
+                });
+            } else {
+                // Insertar nueva calificación
+                db.run(
+                    "INSERT INTO calificaciones (alumno_id, materia_id, nota, trimestre) VALUES (?, ?, ?, ?)",
+                    [alumno_id, materia_id, notaNum, trim],
+                    function(err) {
+                        if (err) return res.status(500).json({ message: err.message });
+                        res.status(201).json({ id: this.lastID });
+                    }
+                );
+            }
+        }
+    );
+};
+
+// Obtiene las calificaciones cargadas para una materia determinada
+exports.getCalificacionesMateria = (req, res) => {
+    const { materia_id } = req.params;
+    const query = `
+        SELECT c.id, c.alumno_id, c.materia_id, c.nota, c.trimestre
+        FROM calificaciones c
+        WHERE c.materia_id = ?
+        ORDER BY c.id DESC
+    `;
+    db.all(query, [materia_id], (err, rows) => {
         if (err) return res.status(500).json({ message: err.message });
-        res.status(201).json({ id: this.lastID });
+        res.json(rows);
+    });
+};
+
+// Historial completo de asistencias y notas de un alumno para el docente
+exports.getHistorialAlumnoDocente = (req, res) => {
+    const { alumno_id } = req.params;
+    const historial = { alumno: null, calificaciones: [], asistencias: [] };
+    db.get("SELECT id, nombre, apellido, dni FROM alumnos WHERE id = ?", [alumno_id], (err, alumno) => {
+        if (err || !alumno) return res.status(404).json({ message: "Alumno no encontrado" });
+        historial.alumno = alumno;
+        db.all(
+            `SELECT c.*, materias.nombre AS materia_nombre
+             FROM calificaciones c
+             LEFT JOIN materias ON c.materia_id = materias.id
+             WHERE c.alumno_id = ?
+             ORDER BY materias.nombre, c.trimestre`,
+            [alumno_id],
+            (e, califs) => {
+                if (!e && califs) historial.calificaciones = califs;
+                db.all(
+                    `SELECT * FROM asistencias WHERE alumno_id = ? ORDER BY fecha DESC LIMIT 30`,
+                    [alumno_id],
+                    (e2, asists) => {
+                        if (!e2 && asists) historial.asistencias = asists;
+                        res.json(historial);
+                    }
+                );
+            }
+        );
     });
 };
 
@@ -688,7 +753,6 @@ exports.cargarCalificacionActividad = (req, res) => {
     if (!actividad_id || !alumno_id) {
         return res.status(400).json({ message: "Datos incompletos" });
     }
-    // Misma validación estricta que las calificaciones de materias: entero 1 a 10.
     if (nota === undefined || nota === null || String(nota).trim() === '') {
         return res.status(400).json({ message: "La nota es obligatoria" });
     }
@@ -699,12 +763,26 @@ exports.cargarCalificacionActividad = (req, res) => {
     if (notaNum < 1 || notaNum > 10) {
         return res.status(400).json({ message: "La nota debe estar en el rango de 1 a 10" });
     }
-    db.run(
-        "INSERT INTO actividad_calificaciones (actividad_id, alumno_id, nota) VALUES (?, ?, ?)",
-        [actividad_id, alumno_id, notaNum],
-        function(err) {
+    db.get(
+        "SELECT id FROM actividad_calificaciones WHERE actividad_id = ? AND alumno_id = ?",
+        [actividad_id, alumno_id],
+        (err, row) => {
             if (err) return res.status(500).json({ message: err.message });
-            res.status(201).json({ id: this.lastID });
+            if (row) {
+                db.run("UPDATE actividad_calificaciones SET nota = ? WHERE id = ?", [notaNum, row.id], function(err) {
+                    if (err) return res.status(500).json({ message: err.message });
+                    res.json({ message: "Calificación de actividad actualizada", id: row.id });
+                });
+            } else {
+                db.run(
+                    "INSERT INTO actividad_calificaciones (actividad_id, alumno_id, nota) VALUES (?, ?, ?)",
+                    [actividad_id, alumno_id, notaNum],
+                    function(err) {
+                        if (err) return res.status(500).json({ message: err.message });
+                        res.status(201).json({ id: this.lastID });
+                    }
+                );
+            }
         }
     );
 };

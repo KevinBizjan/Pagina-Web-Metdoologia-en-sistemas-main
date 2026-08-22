@@ -99,9 +99,9 @@ const Navbar = () => {
         <div className="topbar-btns">
           {!user ? (
             <div style={{ display: 'flex', gap: '8px' }}>
-              <Link to="/login?role=padre" className="btn btn-green" style={{ fontSize: '0.8rem', padding: '10px 18px' }}>👨‍👩‍👧 Padres</Link>
-              <Link to="/login?role=alumno" className="btn btn-violet" style={{ fontSize: '0.8rem', padding: '10px 18px' }}>🎒 Alumnos</Link>
-              <Link to="/login?role=docente" className="btn btn-blue" style={{ fontSize: '0.8rem', padding: '10px 18px' }}>👨‍🏫 Docentes</Link>
+              <Link to="/login?role=padre" className="btn btn-green" style={{ fontSize: '0.8rem', padding: '10px 14px' }}>👨‍👩‍👧 Acceso Padres</Link>
+              <Link to="/login?role=alumno" className="btn btn-violet" style={{ fontSize: '0.8rem', padding: '10px 14px' }}>🎒 Acceso Alumnos</Link>
+              <Link to="/login?role=docente" className="btn btn-blue" style={{ fontSize: '0.8rem', padding: '10px 14px' }}>👨‍🏫 Acceso Maestros</Link>
             </div>
           ) : (
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

@@ -4,25 +4,25 @@ const QuickAccess = () => {
   return (
     <div className="quick-access">
       <div className="quick-grid">
-        <a href="#preinscripcion" className="quick-card fade-in" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <div className="quick-icon qi-green">📝</div>
+        <a href="/login?role=padre" className="quick-card fade-in" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <div className="quick-icon qi-green">👨‍👩‍👧</div>
           <div>
-            <h3>Admisión Online</h3>
-            <p>Completá el formulario de preinscripción</p>
+            <h3>Acceso Padres</h3>
+            <p>Seguimiento académico, calificaciones y estado de cuotas</p>
           </div>
         </a>
-        <a href="/login?role=docente" className="quick-card fade-in" style={{ transitionDelay: '.1s', textDecoration: 'none', color: 'inherit' }}>
-          <div className="quick-icon qi-blue">🏫</div>
+        <a href="/login?role=alumno" className="quick-card fade-in" style={{ transitionDelay: '.1s', textDecoration: 'none', color: 'inherit' }}>
+          <div className="quick-icon qi-blue">🎒</div>
           <div>
-            <h3>Portal para docentes</h3>
-            <p>Acceso exclusivo para los docentes/maestros</p>
+            <h3>Acceso Alumnos</h3>
+            <p>Horarios de clases, materias e inscripción a actividades</p>
           </div>
         </a>
-        <a href="/login?role=admin" className="quick-card fade-in" style={{ transitionDelay: '.2s', textDecoration: 'none', color: 'inherit' }}>
-          <div className="quick-icon qi-orange">💼</div>
+        <a href="/login?role=docente" className="quick-card fade-in" style={{ transitionDelay: '.2s', textDecoration: 'none', color: 'inherit' }}>
+          <div className="quick-icon qi-orange">👨‍🏫</div>
           <div>
-            <h3>Portal para staff</h3>
-            <p>Acceso exclusivo para el personal educativo y administración</p>
+            <h3>Acceso Maestros</h3>
+            <p>Toma de asistencia, carga de notas y comunicados</p>
           </div>
         </a>
       </div>
@@ -31,3 +31,4 @@ const QuickAccess = () => {
 };
 
 export default QuickAccess;
+

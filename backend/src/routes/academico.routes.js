@@ -42,6 +42,8 @@ router.delete('/desvincular-hijo/:id', authMiddleware(['padre']), academicoContr
 
 router.post('/asistencias', authMiddleware(['docente']), academicoController.registrarAsistencia);
 router.post('/calificaciones', authMiddleware(['docente']), academicoController.cargarCalificacion);
+router.get('/calificaciones/materia/:materia_id', authMiddleware(['admin', 'docente']), academicoController.getCalificacionesMateria);
+router.get('/alumnos/:alumno_id/historial-docente', authMiddleware(['admin', 'docente']), academicoController.getHistorialAlumnoDocente);
 
 // Docentes y Horarios (asignación docente↔materia con validación de superposición)
 router.get('/docentes', authMiddleware(['admin', 'docente']), academicoController.getDocentes);

@@ -2,12 +2,15 @@ import { API_URL } from '../config';
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
+import Toast from '../components/Toast';
 
 const DocenteDashboard = () => {
     const { apiFetch } = useAuth();
     const [alumnos, setAlumnos] = useState([]);
     const [materias, setMaterias] = useState([]);
     const [materiaSel, setMateriaSel] = useState('');
+    const [asistenciaMateriaSel, setAsistenciaMateriaSel] = useState('');
+    const [calificacionesMateriaMap, setCalificacionesMateriaMap] = useState({});
     const [, setLoading] = useState(true);
     const [aviso, setAviso] = useState('');
     const [avisoDestino, setAvisoDestino] = useState('all');
@@ -15,6 +18,14 @@ const DocenteDashboard = () => {
     const [actividades, setActividades] = useState([]);
     const [actividadSel, setActividadSel] = useState('');
     const [inscriptos, setInscriptos] = useState([]);
+
+    // Toast institucional
+    const [toast, setToast] = useState({ message: '', type: 'success' });
+    const showToast = (message, type = 'success') => setToast({ message, type });
+
+    // Historial del alumno modal
+    const [historialModal, setHistorialModal] = useState(null); // alumno object or null
+    const [historialData, setHistorialData] = useState({ calificaciones: [], asistencias: [] });
 
     // Modales servicios
     const [modal, setModal] = useState(null); // 'incidencia' | 'comedor' | 'reserva' | null
@@ -30,6 +41,42 @@ const DocenteDashboard = () => {
         if (actividadSel) fetchInscriptos(actividadSel);
         else setInscriptos([]);
     }, [actividadSel]);
+
+    useEffect(() => {
+        if (materiaSel) {
+            fetchCalificacionesMateria(materiaSel);
+        }
+    }, [materiaSel]);
+
+    const fetchCalificacionesMateria = async (matId) => {
+        try {
+            const res = await apiFetch(`${API_URL}/api/academico/calificaciones/materia/${matId}`);
+            if (res.ok) {
+                const data = await res.json();
+                const map = {};
+                data.forEach(c => {
+                    if (!map[c.alumno_id]) map[c.alumno_id] = c.nota;
+                });
+                setCalificacionesMateriaMap(map);
+            }
+        } catch (err) {
+            console.error('Error al obtener calificaciones de la materia:', err);
+        }
+    };
+
+    const verHistorialAlumno = async (alumno) => {
+        setHistorialModal(alumno);
+        setHistorialData({ calificaciones: [], asistencias: [] });
+        try {
+            const res = await apiFetch(`${API_URL}/api/academico/alumnos/${alumno.id}/historial-docente`);
+            if (res.ok) {
+                const data = await res.json();
+                setHistorialData(data);
+            }
+        } catch (err) {
+            console.error('Error al obtener historial de alumno:', err);
+        }
+    };
 
     const fetchActividades = async () => {
         try {
@@ -73,23 +120,23 @@ const DocenteDashboard = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ actividad_id: parseInt(actividadSel), alumno_id: alumnoId, estado })
             });
-            if (r.ok) alert('Asistencia registrada');
-            else { const d = await r.json().catch(() => ({})); alert(d.message || 'Error al registrar asistencia'); }
-        } catch (err) { console.error(err); alert('Error de conexión'); }
+            if (r.ok) showToast('Asistencia a actividad registrada con éxito', 'success');
+            else { const d = await r.json().catch(() => ({})); showToast(d.message || 'Error al registrar asistencia', 'error'); }
+        } catch (err) { console.error(err); showToast('Error de conexión', 'error'); }
     };
 
     const saveNotaActividad = async (alumnoId, nota) => {
-        if (nota === '' || nota === undefined) return alert('Ingrese una nota');
-        if (!notaValida(nota)) return alert('La nota debe ser un número entero entre 1 y 10 (sin decimales ni texto).');
+        if (nota === '' || nota === undefined) return showToast('Ingrese una nota', 'warning');
+        if (!notaValida(nota)) return showToast('La nota debe ser un número entero entre 1 y 10 (sin decimales ni texto).', 'error');
         try {
             const r = await apiFetch(`${API_URL}/api/academico/actividades/calificacion`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ actividad_id: parseInt(actividadSel), alumno_id: alumnoId, nota })
             });
-            if (r.ok) { alert('Calificación guardada'); fetchInscriptos(actividadSel); }
-            else { const d = await r.json().catch(() => ({})); alert(d.message || 'Error al guardar la calificación'); }
-        } catch (err) { console.error(err); alert('Error de conexión'); }
+            if (r.ok) { showToast('Calificación guardada con éxito', 'success'); fetchInscriptos(actividadSel); }
+            else { const d = await r.json().catch(() => ({})); showToast(d.message || 'Error al guardar la calificación', 'error'); }
+        } catch (err) { console.error(err); showToast('Error de conexión', 'error'); }
     };
 
     const fetchAlumnos = async () => {
@@ -145,7 +192,7 @@ const DocenteDashboard = () => {
     };
 
     const saveAsistencia = async () => {
-        if (alumnos.length === 0) return alert('No hay alumnos para registrar.');
+        if (alumnos.length === 0) return showToast('No hay alumnos para registrar.', 'warning');
         try {
             const results = await Promise.all(alumnos.map(a =>
                 apiFetch(`${API_URL}/api/academico/asistencias`, {
@@ -159,11 +206,11 @@ const DocenteDashboard = () => {
                 }).then(r => r.ok).catch(() => false)
             ));
             const fallidos = results.filter(ok => !ok).length;
-            if (fallidos === 0) alert('Asistencia guardada correctamente');
-            else alert(`Asistencia guardada parcialmente: ${fallidos} registro(s) fallaron.`);
+            if (fallidos === 0) showToast('Asistencia del día guardada correctamente', 'success');
+            else showToast(`Asistencia guardada parcialmente: ${fallidos} registro(s) fallaron.`, 'warning');
         } catch (error) {
             console.error(error);
-            alert('Error al guardar asistencia');
+            showToast('Error al guardar la asistencia', 'error');
         }
     };
 
@@ -171,8 +218,8 @@ const DocenteDashboard = () => {
     const notaValida = (nota) => /^\d+$/.test(String(nota).trim()) && Number(nota) >= 1 && Number(nota) <= 10;
 
     const saveNota = async (alumnoId, nota) => {
-        if (nota === '' || nota === undefined) return alert('Ingrese una nota');
-        if (!notaValida(nota)) return alert('La nota debe ser un número entero entre 1 y 10 (sin decimales ni texto).');
+        if (nota === '' || nota === undefined) return showToast('Ingrese una nota', 'warning');
+        if (!notaValida(nota)) return showToast('La nota debe ser un número entero entre 1 y 10 (sin decimales ni texto).', 'error');
         try {
             const response = await apiFetch(`${API_URL}/api/academico/calificaciones`, {
                 method: 'POST',
@@ -184,13 +231,18 @@ const DocenteDashboard = () => {
                     trimestre: 1
                 })
             });
-            if (response.ok) alert('Calificación guardada');
+            if (response.ok) {
+                showToast('Calificación guardada con éxito', 'success');
+                setCalificacionesMateriaMap(prev => ({ ...prev, [alumnoId]: Number(nota) }));
+                if (materiaSel) fetchCalificacionesMateria(materiaSel);
+            }
             else {
                 const data = await response.json().catch(() => ({}));
-                alert(data.message || 'Error al guardar la calificación');
+                showToast(data.message || 'Error al guardar la calificación', 'error');
             }
         } catch (error) {
             console.error(error);
+            showToast('Error de conexión', 'error');
         }
     };
 
@@ -207,12 +259,13 @@ const DocenteDashboard = () => {
                 })
             });
             if (response.ok) {
-                alert('Aviso publicado');
+                showToast('Aviso publicado correctamente', 'success');
                 setAviso('');
                 setAvisoDestino('all');
             }
         } catch (error) {
             console.error(error);
+            showToast('Error al publicar aviso', 'error');
         }
     };
 
@@ -225,10 +278,10 @@ const DocenteDashboard = () => {
     const finalizarTrimestre = () => {
         const cargadas = alumnos.filter(a => a.notaTmp !== '').length;
         if (cargadas === 0) {
-            alert('Aún no se cargaron notas en esta sesión.');
+            showToast('Aún no se cargaron notas en esta sesión.', 'warning');
             return;
         }
-        alert(`Carga finalizada. ${cargadas} calificación(es) confirmada(s) para el trimestre actual.`);
+        showToast(`Carga finalizada. ${cargadas} calificación(es) confirmada(s) para el trimestre actual.`, 'success');
     };
 
     const handleIncidenciaSubmit = async (e) => {
@@ -240,16 +293,16 @@ const DocenteDashboard = () => {
             accion_tomada: form.accion_tomada.value,
             notificado_padre: form.notificado_padre.checked ? 1 : 0
         };
-        if (data.descripcion.length < 10) return alert('La descripción debe tener al menos 10 caracteres.');
+        if (data.descripcion.length < 10) return showToast('La descripción debe tener al menos 10 caracteres.', 'warning');
         try {
             const r = await apiFetch(`${API_URL}/api/servicios/enfermeria/incidencia`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            if (r.ok) { alert('Incidencia registrada'); setModal(null); }
-            else { const d = await r.json().catch(() => ({})); alert(d.message || 'Error al registrar incidencia'); }
-        } catch (err) { console.error(err); alert('Error de conexión'); }
+            if (r.ok) { showToast('Incidencia registrada con éxito', 'success'); setModal(null); }
+            else { const d = await r.json().catch(() => ({})); showToast(d.message || 'Error al registrar incidencia', 'error'); }
+        } catch (err) { console.error(err); showToast('Error de conexión', 'error'); }
     };
 
     const handleComedorSubmit = async (e) => {
@@ -266,9 +319,9 @@ const DocenteDashboard = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            if (r.ok) { alert('Asistencia al comedor registrada'); setModal(null); }
-            else { const d = await r.json().catch(() => ({})); alert(d.message || 'Error al registrar'); }
-        } catch (err) { console.error(err); alert('Error de conexión'); }
+            if (r.ok) { showToast('Asistencia al comedor registrada', 'success'); setModal(null); }
+            else { const d = await r.json().catch(() => ({})); showToast(d.message || 'Error al registrar', 'error'); }
+        } catch (err) { console.error(err); showToast('Error de conexión', 'error'); }
     };
 
     const handleReservaLabSubmit = async (e) => {
@@ -288,9 +341,9 @@ const DocenteDashboard = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            if (r.ok) { alert('Reserva realizada'); setModal(null); }
-            else { const d = await r.json().catch(() => ({})); alert(d.message || 'Error al reservar'); }
-        } catch (err) { console.error(err); alert('Error de conexión'); }
+            if (r.ok) { showToast('Reserva de laboratorio realizada con éxito', 'success'); setModal(null); }
+            else { const d = await r.json().catch(() => ({})); showToast(d.message || 'Error al reservar', 'error'); }
+        } catch (err) { console.error(err); showToast('Error de conexión', 'error'); }
     };
 
     return (
@@ -307,31 +360,61 @@ const DocenteDashboard = () => {
                             ✓ MARCAR TODOS
                         </button>
                     </div>
-                    <div style={{ marginTop: '20px' }}>
+
+                    <div style={{ marginTop: '12px' }}>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Materia / Horario</label>
+                        <select
+                            value={asistenciaMateriaSel}
+                            onChange={(e) => setAsistenciaMateriaSel(e.target.value)}
+                            style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}
+                        >
+                            <option value="">Todas las materias / General</option>
+                            {materias.map(m => (
+                                <option key={m.id} value={m.id}>
+                                    {m.nombre} ({m.nivel_nombre || 'Nivel'} - Div. {m.division || 'A'})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div style={{ marginTop: '16px' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ textAlign: 'left', fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>
                                     <th style={{ padding: '10px 0' }}>Alumno</th>
                                     <th>Estado</th>
+                                    <th style={{ textAlign: 'right' }}>Historial</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {alumnos.map((a) => (
-                                    <tr key={a.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '12px 0', fontWeight: 700, fontSize: '0.9rem' }}>{a.nombre}</td>
-                                        <td>
-                                            <select 
-                                                value={a.asistencia} 
-                                                onChange={(e) => handleAsistenciaChange(a.id, e.target.value)}
-                                                style={{ padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.85rem', background: a.asistencia === 'Presente' ? '#f0fdf4' : '#fef2f2' }}
-                                            >
-                                                <option value="Presente">Presente</option>
-                                                <option value="Ausente">Ausente</option>
-                                                <option value="Tarde">Tarde</option>
-                                            </select>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {(() => {
+                                    const matObj = materias.find(m => String(m.id) === String(asistenciaMateriaSel));
+                                    const lista = matObj && matObj.curso_id ? alumnos.filter(a => a.curso_id === matObj.curso_id) : alumnos;
+                                    return lista.map((a) => (
+                                        <tr key={a.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '12px 0', fontWeight: 700, fontSize: '0.9rem' }}>{a.nombre} {a.apellido}</td>
+                                            <td>
+                                                <select 
+                                                    value={a.asistencia} 
+                                                    onChange={(e) => handleAsistenciaChange(a.id, e.target.value)}
+                                                    style={{ padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.85rem', background: a.asistencia === 'Presente' ? '#f0fdf4' : '#fef2f2' }}
+                                                >
+                                                    <option value="Presente">Presente</option>
+                                                    <option value="Ausente">Ausente</option>
+                                                    <option value="Tarde">Tarde</option>
+                                                </select>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <button
+                                                    onClick={() => verHistorialAlumno(a)}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--blue)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                                                >
+                                                    👁️ Ver
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ));
+                                })()}
                             </tbody>
                         </table>
                         <button onClick={saveAsistencia} className="btn btn-green" style={{ width: '100%', marginTop: '20px', fontSize: '0.85rem' }}>Guardar Asistencia del Día</button>
@@ -342,7 +425,14 @@ const DocenteDashboard = () => {
                 <div className="dashboard-card" style={cardStyle}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #f1f5f9', paddingBottom: '12px' }}>
                         <h3 style={{ fontSize: '1.1rem', color: 'var(--blue)', fontWeight: 800 }}>📝 Calificaciones</h3>
-                        <span style={{ fontSize: '0.75rem', background: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '50px', fontWeight: 800 }}>4° Año - Div. A</span>
+                        {(() => {
+                            const matSelObj = materias.find(m => String(m.id) === String(materiaSel));
+                            return (
+                                <span style={{ fontSize: '0.75rem', background: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '50px', fontWeight: 800 }}>
+                                    {matSelObj ? `${matSelObj.nivel_nombre || ''} Div. ${matSelObj.division || 'A'}` : 'Seleccionar Materia'}
+                                </span>
+                            );
+                        })()}
                     </div>
 
                     <div style={{ marginTop: '16px' }}>
@@ -355,7 +445,7 @@ const DocenteDashboard = () => {
                             {materias.length === 0 ? (
                                 <option value="">Materia General (sin configurar)</option>
                             ) : (
-                                materias.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)
+                                materias.map(m => <option key={m.id} value={m.id}>{m.nombre} ({m.nivel_nombre || 'Nivel'} - Div. {m.division || 'A'})</option>)
                             )}
                         </select>
                     </div>
@@ -370,33 +460,50 @@ const DocenteDashboard = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {alumnos.map((a) => (
-                                    <tr key={a.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '14px 0', fontWeight: 700, fontSize: '0.9rem' }}>{a.apellido}, {a.nombre}</td>
-                                        <td>
-                                            <input
-                                                type="text"
-                                                inputMode="numeric" maxLength={4}
-                                                placeholder="1-10"
-                                                value={a.notaTmp}
-                                                onChange={(e) => handleNotaChange(a.id, e.target.value)}
-                                                style={{ 
-                                                    width: '50px', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', 
-                                                    textAlign: 'center', fontWeight: 700,
-                                                    backgroundColor: getNotaColor(a.notaTmp)
-                                                }}
-                                            />
-                                        </td>
-                                        <td style={{ textAlign: 'right' }}>
-                                            <button 
-                                                onClick={() => saveNota(a.id, a.notaTmp)}
-                                                style={{ background: 'none', border: 'none', color: 'var(--blue)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}
-                                            >
-                                                Guardar
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {(() => {
+                                    const matGradObj = materias.find(m => String(m.id) === String(materiaSel));
+                                    const listaNotas = matGradObj && matGradObj.curso_id ? alumnos.filter(a => a.curso_id === matGradObj.curso_id) : alumnos;
+                                    return listaNotas.map((a) => (
+                                        <tr key={a.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '14px 0', fontWeight: 700, fontSize: '0.9rem' }}>
+                                                {a.apellido}, {a.nombre}
+                                                {calificacionesMateriaMap[a.id] != null && (
+                                                    <span style={{ display: 'block', fontSize: '0.7rem', color: '#166534', fontWeight: 600 }}>
+                                                        Cargada: {calificacionesMateriaMap[a.id]}
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <input
+                                                    type="text"
+                                                    inputMode="numeric" maxLength={4}
+                                                    placeholder="1-10"
+                                                    value={a.notaTmp}
+                                                    onChange={(e) => handleNotaChange(a.id, e.target.value)}
+                                                    style={{ 
+                                                        width: '50px', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0', 
+                                                        textAlign: 'center', fontWeight: 700,
+                                                        backgroundColor: getNotaColor(a.notaTmp)
+                                                    }}
+                                                />
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <button 
+                                                    onClick={() => saveNota(a.id, a.notaTmp)}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--blue)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', marginRight: '8px' }}
+                                                >
+                                                    Guardar
+                                                </button>
+                                                <button
+                                                    onClick={() => verHistorialAlumno(a)}
+                                                    style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                                                >
+                                                    👁️ Historial
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ));
+                                })()}
                             </tbody>
                         </table>
                         <button onClick={finalizarTrimestre} className="btn btn-hero-orange" style={{ width: '100%', marginTop: '20px', fontSize: '0.85rem' }}>Finalizar Carga Trimestral</button>
@@ -622,6 +729,82 @@ const DocenteDashboard = () => {
                     </div>
                 </div>
             )}
+
+            {historialModal && (
+                <div style={modalOverlay} onClick={() => setHistorialModal(null)}>
+                    <div style={{ ...modalContent, maxWidth: '650px', maxHeight: '80vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                            <div>
+                                <h2 style={{ color: 'var(--blue)', fontSize: '1.2rem', margin: 0 }}>📊 Historial Académico</h2>
+                                <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                                    {historialModal.apellido}, {historialModal.nombre} (DNI: {historialModal.dni})
+                                </p>
+                            </div>
+                            <button onClick={() => setHistorialModal(null)} style={closeBtn}>✕</button>
+                        </div>
+
+                        <h4 style={{ color: 'var(--blue)', marginBottom: '8px' }}>📝 Calificaciones por Materia</h4>
+                        {historialData.calificaciones.length === 0 ? (
+                            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px' }}>No hay calificaciones registradas aún.</p>
+                        ) : (
+                            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+                                <thead>
+                                    <tr style={{ textAlign: 'left', fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>
+                                        <th style={{ padding: '6px 0' }}>Materia</th>
+                                        <th>Trimestre</th>
+                                        <th>Nota</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {historialData.calificaciones.map((c, idx) => (
+                                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '8px 0', fontSize: '0.85rem', fontWeight: 600 }}>{c.materia_nombre || 'Materia'}</td>
+                                            <td style={{ fontSize: '0.85rem' }}>{c.trimestre}° Trimestre</td>
+                                            <td style={{ fontSize: '0.9rem', fontWeight: 800, color: c.nota >= 7 ? '#166534' : c.nota >= 4 ? '#854d0e' : '#991b1b' }}>{c.nota}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+
+                        <h4 style={{ color: 'var(--blue)', marginBottom: '8px' }}>📋 Historial de Asistencia Reciente</h4>
+                        {historialData.asistencias.length === 0 ? (
+                            <p style={{ fontSize: '0.85rem', color: '#64748b' }}>No hay registros de asistencia aún.</p>
+                        ) : (
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ textAlign: 'left', fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>
+                                        <th style={{ padding: '6px 0' }}>Fecha</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {historialData.asistencias.map((ast, idx) => (
+                                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '8px 0', fontSize: '0.85rem' }}>{ast.fecha}</td>
+                                            <td>
+                                                <span style={{
+                                                    fontSize: '0.75rem', fontWeight: 800, padding: '2px 8px', borderRadius: '50px',
+                                                    background: ast.estado === 'Presente' ? '#dcfce7' : ast.estado === 'Ausente' ? '#fef2f2' : '#fef9c3',
+                                                    color: ast.estado === 'Presente' ? '#166534' : ast.estado === 'Ausente' ? '#991b1b' : '#854d0e'
+                                                }}>
+                                                    {ast.estado}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                onClose={() => setToast({ message: '', type: 'success' })}
+            />
         </DashboardLayout>
     );
 };
