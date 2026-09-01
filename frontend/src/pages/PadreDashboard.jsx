@@ -3,6 +3,40 @@ import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
 
+/**
+ * Obtiene el saldo financiero y el resumen académico consolidado de un alumno.
+ * @param {Object} hijo - Datos del alumno.
+ * @param {Function} apiFetch - Función para realizar peticiones HTTP autenticadas.
+ * @returns {Promise<Object>} Datos del alumno enriquecidos con métricas académicas y financieras.
+ */
+const obtenerDetalleHijo = async (hijo, apiFetch) => {
+    const [respuestaSaldo, respuestaResumen] = await Promise.all([
+        apiFetch(`${API_URL}/api/financiero/saldo/${hijo.id}`),
+        apiFetch(`${API_URL}/api/academico/mis-hijos/${hijo.id}/resumen`)
+    ]);
+
+    const datosSaldo = respuestaSaldo.ok ? await respuestaSaldo.json() : { saldo_pendiente: 0 };
+    const resumenAcademico = respuestaResumen.ok ? await respuestaResumen.json() : {};
+
+    return {
+        ...hijo,
+        saldo_pendiente: Number(datosSaldo.saldo_pendiente) || 0,
+        promedio: resumenAcademico.promedio ?? null,
+        asistencia_pct: resumenAcademico.asistencia_pct ?? null,
+        faltas: resumenAcademico.faltas ?? 0,
+        calificaciones: resumenAcademico.calificaciones || []
+    };
+};
+
+/**
+ * Calcula el monto total adeudado a partir de una lista de alumnos.
+ * @param {Array<Object>} listaHijos 
+ * @returns {number} Suma de saldos pendientes.
+ */
+const calcularSaldoTotal = (listaHijos) => {
+    return listaHijos.reduce((acumuladorTotal, hijo) => acumuladorTotal + hijo.saldo_pendiente, 0);
+};
+
 const PadreDashboard = () => {
     const { apiFetch } = useAuth();
     const [showMenu, setShowMenu] = useState(false);
@@ -19,7 +53,7 @@ const PadreDashboard = () => {
             const response = await apiFetch(`${API_URL}/api/financiero/pagos`);
             if (response.ok) setPagos(await response.json());
         } catch (error) {
-            console.error(error);
+            console.error('Error al obtener historial de pagos:', error);
         }
     }, [apiFetch]);
 
@@ -28,7 +62,7 @@ const PadreDashboard = () => {
             const response = await apiFetch(`${API_URL}/api/academico/alumnos-disponibles`);
             if (response.ok) setDisponibles(await response.json());
         } catch (error) {
-            console.error(error);
+            console.error('Error al obtener alumnos disponibles:', error);
         }
     }, [apiFetch]);
 
@@ -37,7 +71,7 @@ const PadreDashboard = () => {
             const response = await apiFetch(`${API_URL}/api/comunicacion/notificaciones`);
             if (response.ok) setNotificaciones(await response.json());
         } catch (error) {
-            console.error(error);
+            console.error('Error al obtener notificaciones:', error);
         }
     }, [apiFetch]);
 
@@ -45,28 +79,16 @@ const PadreDashboard = () => {
         try {
             const response = await apiFetch(`${API_URL}/api/academico/mis-hijos`);
             if (!response.ok) return;
-            const lista = await response.json();
-            const saldos = await Promise.all(lista.map(async (h) => {
-                // Saldo + resumen académico real (promedio, asistencia, faltas) en paralelo.
-                const [rs, rr] = await Promise.all([
-                    apiFetch(`${API_URL}/api/financiero/saldo/${h.id}`),
-                    apiFetch(`${API_URL}/api/academico/mis-hijos/${h.id}/resumen`)
-                ]);
-                const s = rs.ok ? await rs.json() : { saldo_pendiente: 0 };
-                const resumen = rr.ok ? await rr.json() : {};
-                return {
-                    ...h,
-                    saldo_pendiente: Number(s.saldo_pendiente) || 0,
-                    promedio: resumen.promedio ?? null,
-                    asistencia_pct: resumen.asistencia_pct ?? null,
-                    faltas: resumen.faltas ?? 0,
-                    calificaciones: resumen.calificaciones || []
-                };
-            }));
-            setHijosReales(saldos);
-            setSaldoTotal(saldos.reduce((acc, h) => acc + h.saldo_pendiente, 0));
+
+            const listaHijos = await response.json();
+            const hijosConDetalle = await Promise.all(
+                listaHijos.map((hijo) => obtenerDetalleHijo(hijo, apiFetch))
+            );
+
+            setHijosReales(hijosConDetalle);
+            setSaldoTotal(calcularSaldoTotal(hijosConDetalle));
         } catch (error) {
-            console.error(error);
+            console.error('Error al sincronizar hijos y saldos:', error);
         }
     }, [apiFetch]);
 
@@ -77,25 +99,24 @@ const PadreDashboard = () => {
         fetchPagos();
     }, [fetchNotificaciones, fetchHijosYSaldos, fetchDisponibles, fetchPagos]);
 
-    // Descarga el comprobante de pago en PDF (solo lectura, de los hijos vinculados).
     const descargarComprobante = async (pagoId) => {
         try {
             const response = await apiFetch(`${API_URL}/api/financiero/comprobante/${pagoId}`);
             if (!response.ok) {
-                const d = await response.json().catch(() => ({}));
-                return alert(d.message || 'No se pudo generar el comprobante');
+                const errorData = await response.json().catch(() => ({}));
+                return alert(errorData.message || 'No se pudo generar el comprobante');
             }
             const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `comprobante_pago_${pagoId}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            const urlDescarga = URL.createObjectURL(blob);
+            const elementoEnlace = document.createElement('a');
+            elementoEnlace.href = urlDescarga;
+            elementoEnlace.setAttribute('download', `comprobante_pago_${pagoId}.pdf`);
+            document.body.appendChild(elementoEnlace);
+            elementoEnlace.click();
+            document.body.removeChild(elementoEnlace);
+            URL.revokeObjectURL(urlDescarga);
         } catch (error) {
-            console.error(error);
+            console.error('Error al descargar comprobante:', error);
             alert('Error al descargar el comprobante');
         }
     };
