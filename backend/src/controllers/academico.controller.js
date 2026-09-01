@@ -1,7 +1,6 @@
 const db = require('../config/database');
 
-// Un nombre/apellido válido solo tiene letras, espacios y signos básicos (sin números ni símbolos).
-const NOMBRE_REGEX = /^[\p{L}\s'’.-]+$/u;
+const { NOMBRE_REGEX, esNombreValido } = require('../utils/validators');
 
 // --- NIVELES ---
 exports.getNiveles = (req, res) => {

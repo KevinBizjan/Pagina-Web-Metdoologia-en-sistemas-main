@@ -3,19 +3,7 @@ const bcrypt = require('bcryptjs');
 const db = require('../config/database');
 require('dotenv').config();
 
-// Un nombre válido solo tiene letras (con acentos/ñ), espacios y signos básicos
-// de nombres (apóstrofo, punto, guion). No se aceptan números ni otros símbolos.
-const NOMBRE_REGEX = /^[\p{L}\s'’.-]+$/u;
-
-// Política de complejidad de contraseña (solo para crear/registrar cuentas nuevas).
-// No afecta el login de cuentas ya existentes. Devuelve '' si es válida o el mensaje.
-const validarPassword = (pw) => {
-    if (!pw || pw.length < 8) return 'La contraseña debe tener al menos 8 caracteres.';
-    if (!/[A-Z]/.test(pw)) return 'La contraseña debe incluir al menos una mayúscula.';
-    if (!/[0-9]/.test(pw)) return 'La contraseña debe incluir al menos un número.';
-    if (!/[^A-Za-z0-9]/.test(pw)) return 'La contraseña debe incluir al menos un carácter especial (ej: ! @ # $).';
-    return '';
-};
+const { NOMBRE_REGEX, esNombreValido, esEmailValido, validarPassword } = require('../utils/validators');
 
 // Registro de cuenta familiar (rol "padre").
 // El usuario se registra con su correo y una contraseña. El correo se usa

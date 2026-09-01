@@ -3,9 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 
-// Un nombre válido (nivel, materia, actividad) solo tiene letras, espacios y signos básicos (sin números ni símbolos).
-const NOMBRE_REGEX = /^[\p{L}\s'’.-]+$/u;
-const esNombreValido = (texto) => NOMBRE_REGEX.test(String(texto || '').trim());
+import { NOMBRE_REGEX, esNombreValido } from '../utils/validators';
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('preinscripciones');

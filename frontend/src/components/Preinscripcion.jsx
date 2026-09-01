@@ -1,5 +1,6 @@
-import { API_URL } from '../config';
 import { useState } from 'react';
+import { API_URL } from '../config';
+import { NOMBRE_REGEX } from '../utils/validators';
 
 const errorTextStyle = {
     display: 'block',
@@ -14,11 +15,7 @@ const FieldError = ({ error }) => error ? (
 ) : null;
 
 // Validadores por campo. Devuelven '' si está OK o el mensaje de error.
-// Se usan tanto en vivo (onChange/onBlur) como en el submit, de modo que el
-// error de un campo aparece apenas se completa, sin necesidad de llenar todo.
-// Un nombre válido solo tiene letras (con acentos/ñ), espacios y signos básicos
-// de nombres (apóstrofo, punto, guion). No se aceptan números ni otros símbolos.
-const NOMBRE_REGEX = /^[\p{L}\s'’.-]+$/u;
+// Se usan tanto en vivo (onChange/onBlur) como en el submit.
 
 const validators = {
     alumno_nombre: (v) => {

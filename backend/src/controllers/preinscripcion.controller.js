@@ -1,9 +1,10 @@
 const db = require('../config/database');
+const { NOMBRE_REGEX, esDniValido, esEmailValido, esEdadValida } = require('../utils/validators');
 
 exports.create = (req, res) => {
     const { 
         alumno_nombre, 
-        alumno_dni,
+        alumno_dni, 
         alumno_edad, 
         nivel, 
         turno, 
@@ -16,23 +17,21 @@ exports.create = (req, res) => {
     if (!alumno_nombre || !alumno_dni || !alumno_edad || !nivel || !turno || !tutor_nombre || !tutor_telefono || !tutor_email) {
         return res.status(400).json({ message: 'Todos los campos obligatorios deben ser completados' });
     }
-    // Validaciones de formato y rango (no se aceptan negativos ni fuera de rango).
-    // Un nombre válido solo tiene letras, espacios y signos básicos (sin números ni símbolos).
-    const NOMBRE_REGEX = /^[\p{L}\s'’.-]+$/u;
+    
+    // Validaciones de formato y rango usando utilidades centralizadas
     if (!NOMBRE_REGEX.test(String(alumno_nombre).trim())) {
         return res.status(400).json({ message: 'El nombre del alumno solo puede contener letras (sin números ni símbolos)' });
     }
     if (!NOMBRE_REGEX.test(String(tutor_nombre).trim())) {
         return res.status(400).json({ message: 'El nombre del tutor solo puede contener letras (sin números ni símbolos)' });
     }
-    if (!/^\d+$/.test(String(alumno_dni).trim())) {
+    if (!esDniValido(alumno_dni)) {
         return res.status(400).json({ message: 'El DNI debe ser numérico (sin puntos ni letras)' });
     }
-    const edadNum = Number(alumno_edad);
-    if (!Number.isInteger(edadNum) || edadNum < 3 || edadNum > 18) {
+    if (!esEdadValida(alumno_edad, 3, 18)) {
         return res.status(400).json({ message: 'La edad del alumno debe estar entre 3 y 18 años' });
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(tutor_email).trim())) {
+    if (!esEmailValido(tutor_email)) {
         return res.status(400).json({ message: 'El correo electrónico no tiene un formato válido' });
     }
 
