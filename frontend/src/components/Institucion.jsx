@@ -1,5 +1,3 @@
-import React from 'react';
-
 const Institucion = () => {
   return (
     <section className="section institucion" id="institucion">

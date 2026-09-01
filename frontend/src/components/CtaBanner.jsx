@@ -1,5 +1,3 @@
-import React from 'react';
-
 const CtaBanner = () => {
   return (
     <div className="cta-banner">

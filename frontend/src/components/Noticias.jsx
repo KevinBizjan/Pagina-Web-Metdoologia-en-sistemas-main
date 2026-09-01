@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 // Noticias con su contenido completo. El resumen se muestra en la tarjeta
 // y el contenido (varios párrafos) se abre en un modal al tocar "Leer más".

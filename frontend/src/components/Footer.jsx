@@ -1,4 +1,3 @@
-import React from 'react';
 
 // Destinos reales de las redes/enlaces institucionales. Se pueden reemplazar por
 // los perfiles oficiales del colegio cuando existan.

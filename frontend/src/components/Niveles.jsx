@@ -1,5 +1,3 @@
-import React from 'react';
-
 const Niveles = () => {
   return (
     <section className="section niveles" id="niveles">

@@ -1,5 +1,5 @@
 import { API_URL } from '../config';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
 import Toast from '../components/Toast';
@@ -25,19 +25,6 @@ const AlumnoDashboard = () => {
         { dia: 'Miércoles', materia: 'Ciencias', hora: '08:00 - 09:30' }
     ];
 
-    useEffect(() => {
-        const fetchNotificaciones = async () => {
-            try {
-                const response = await apiFetch(`${API_URL}/api/comunicacion/notificaciones`);
-                if (response.ok) setNotificaciones(await response.json());
-            } catch (error) {
-                console.error('Error al cargar notificaciones:', error);
-            }
-        };
-        fetchNotificaciones();
-        fetchActividades();
-    }, [apiFetch]);
-
     const fetchActividades = async () => {
         try {
             const [resAct, resMis] = await Promise.all([
@@ -50,6 +37,19 @@ const AlumnoDashboard = () => {
             console.error('Error al cargar actividades:', error);
         }
     };
+
+    useEffect(() => {
+        const fetchNotificaciones = async () => {
+            try {
+                const response = await apiFetch(`${API_URL}/api/comunicacion/notificaciones`);
+                if (response.ok) setNotificaciones(await response.json());
+            } catch (error) {
+                console.error('Error al cargar notificaciones:', error);
+            }
+        };
+        fetchNotificaciones();
+        fetchActividades();
+    }, [apiFetch]);
 
     const estaInscripto = (actividadId) => misInscripciones.some(a => a.id === actividadId);
 

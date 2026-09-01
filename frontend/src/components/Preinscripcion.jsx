@@ -1,5 +1,17 @@
 import { API_URL } from '../config';
-import React, { useState } from 'react';
+import { useState } from 'react';
+
+const errorTextStyle = {
+    display: 'block',
+    color: '#dc2626',
+    fontSize: '0.78rem',
+    fontWeight: 700,
+    marginTop: '5px'
+};
+
+const FieldError = ({ error }) => error ? (
+    <span style={errorTextStyle}>{error}</span>
+) : null;
 
 // Validadores por campo. Devuelven '' si está OK o el mensaje de error.
 // Se usan tanto en vivo (onChange/onBlur) como en el submit, de modo que el
@@ -141,7 +153,7 @@ const Preinscripcion = () => {
             } else {
                 setMessage({ type: 'error', text: data.message || 'Ocurrió un error al enviar el formulario.' });
             }
-        } catch (error) {
+        } catch {
             setMessage({ type: 'error', text: 'Error de conexión con el servidor.' });
         } finally {
             setLoading(false);
@@ -153,11 +165,6 @@ const Preinscripcion = () => {
         ...inputStyle,
         borderColor: errors[name] ? '#dc2626' : '#e2e8f0'
     });
-
-    // Renderiza el mensaje de error inline justo debajo del campo.
-    const FieldError = ({ name }) => errors[name] ? (
-        <span style={errorTextStyle}>{errors[name]}</span>
-    ) : null;
 
     return (
         <section className="section" id="preinscripcion" style={{ background: 'var(--bg)' }}>
@@ -198,18 +205,18 @@ const Preinscripcion = () => {
                                 <div style={{ marginBottom: '16px' }}>
                                     <label style={labelStyle}>Nombre Completo</label>
                                     <input type="text" name="alumno_nombre" value={formData.alumno_nombre} onChange={handleChange} onBlur={handleBlur} style={fieldStyle('alumno_nombre')} placeholder="Nombre y Apellido" />
-                                    <FieldError name="alumno_nombre" />
+                                    <FieldError error={errors.alumno_nombre} />
                                 </div>
                                 <div style={{ marginBottom: '16px' }}>
                                     <label style={labelStyle}>DNI (Sin puntos ni letras)</label>
                                     <input type="text" name="alumno_dni" value={formData.alumno_dni} onChange={handleChange} onBlur={handleBlur} style={fieldStyle('alumno_dni')} placeholder="Solo números" />
-                                    <FieldError name="alumno_dni" />
+                                    <FieldError error={errors.alumno_dni} />
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                     <div style={{ marginBottom: '16px' }}>
                                         <label style={labelStyle}>Edad</label>
                                         <input type="number" min="3" max="18" name="alumno_edad" value={formData.alumno_edad} onChange={handleChange} onBlur={handleBlur} style={fieldStyle('alumno_edad')} placeholder="Ej: 6" />
-                                        <FieldError name="alumno_edad" />
+                                        <FieldError error={errors.alumno_edad} />
                                     </div>
                                     <div style={{ marginBottom: '16px' }}>
                                         <label style={labelStyle}>Nivel</label>
@@ -219,7 +226,7 @@ const Preinscripcion = () => {
                                             <option value="Primario">Primario</option>
                                             <option value="Secundario">Secundario</option>
                                         </select>
-                                        <FieldError name="nivel" />
+                                        <FieldError error={errors.nivel} />
                                     </div>
                                 </div>
                                 <div style={{ marginBottom: '16px' }}>
@@ -230,7 +237,7 @@ const Preinscripcion = () => {
                                         <option value="Tarde">Tarde</option>
                                         <option value="Jornada Extendida">Jornada Extendida</option>
                                     </select>
-                                    <FieldError name="turno" />
+                                    <FieldError error={errors.turno} />
                                 </div>
                             </div>
 
@@ -240,17 +247,17 @@ const Preinscripcion = () => {
                                 <div style={{ marginBottom: '16px' }}>
                                     <label style={labelStyle}>Nombre del Tutor</label>
                                     <input type="text" name="tutor_nombre" value={formData.tutor_nombre} onChange={handleChange} onBlur={handleBlur} style={fieldStyle('tutor_nombre')} placeholder="Nombre y Apellido" />
-                                    <FieldError name="tutor_nombre" />
+                                    <FieldError error={errors.tutor_nombre} />
                                 </div>
                                 <div style={{ marginBottom: '16px' }}>
                                     <label style={labelStyle}>Teléfono de Contacto</label>
                                     <input type="tel" name="tutor_telefono" value={formData.tutor_telefono} onChange={handleChange} onBlur={handleBlur} style={fieldStyle('tutor_telefono')} placeholder="Ej: 3624123456" />
-                                    <FieldError name="tutor_telefono" />
+                                    <FieldError error={errors.tutor_telefono} />
                                 </div>
                                 <div style={{ marginBottom: '16px' }}>
                                     <label style={labelStyle}>Correo Electrónico</label>
                                     <input type="email" name="tutor_email" value={formData.tutor_email} onChange={handleChange} onBlur={handleBlur} style={fieldStyle('tutor_email')} placeholder="ejemplo@correo.com" />
-                                    <FieldError name="tutor_email" />
+                                    <FieldError error={errors.tutor_email} />
                                 </div>
                                 <div style={{ marginBottom: '16px' }}>
                                     <label style={labelStyle}>Observaciones (Opcional)</label>
@@ -287,14 +294,6 @@ const inputStyle = {
     outline: 'none',
     transition: 'border-color 0.2s',
     fontFamily: 'inherit'
-};
-
-const errorTextStyle = {
-    display: 'block',
-    color: '#dc2626',
-    fontSize: '0.78rem',
-    fontWeight: 700,
-    marginTop: '5px'
 };
 
 export default Preinscripcion;

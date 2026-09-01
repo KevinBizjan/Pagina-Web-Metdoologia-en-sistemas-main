@@ -9,7 +9,7 @@ const verifyToken = (req, res, next) => {
         return res.status(403).json({ message: 'Token no proporcionado' });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, process.env.JWT_SECRET || 'educar_jwt_secret_dev_key_2026', (err, decoded) => {
         if (err) {
             return res.status(401).json({ message: 'Token inválido o expirado' });
         }

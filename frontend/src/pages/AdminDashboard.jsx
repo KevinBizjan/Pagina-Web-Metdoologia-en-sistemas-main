@@ -1,5 +1,5 @@
 import { API_URL } from '../config';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 
@@ -326,10 +326,7 @@ const AdminDashboard = () => {
 
     const fetchFinanzas = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/financiero/cuotas-config`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await apiFetch(`${API_URL}/api/financiero/cuotas-config`);
             const data = await response.json();
             if (response.ok) setCuotasConfig(data);
         } catch (error) { console.error(error); }
@@ -337,8 +334,7 @@ const AdminDashboard = () => {
 
     const fetchServicios = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const resTrans = await fetch(`${API_URL}/api/servicios/transporte/rutas`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const resTrans = await apiFetch(`${API_URL}/api/servicios/transporte/rutas`);
             if (resTrans.ok) setRutasTransporte(await resTrans.json());
         } catch (error) { console.error(error); }
     };
@@ -346,10 +342,8 @@ const AdminDashboard = () => {
     const deleteCurso = async (id) => {
         if (!window.confirm('¿Eliminar curso?')) return;
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/academico/cursos/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await apiFetch(`${API_URL}/api/academico/cursos/${id}`, {
+                method: 'DELETE'
             });
             if (response.ok) fetchCursosYAulas();
         } catch (error) { console.error(error); }
@@ -358,10 +352,8 @@ const AdminDashboard = () => {
     const deleteAula = async (id) => {
         if (!window.confirm('¿Eliminar aula?')) return;
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/academico/aulas/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await apiFetch(`${API_URL}/api/academico/aulas/${id}`, {
+                method: 'DELETE'
             });
             if (response.ok) fetchCursosYAulas();
         } catch (error) { console.error(error); }
@@ -369,10 +361,7 @@ const AdminDashboard = () => {
 
     const fetchNiveles = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/academico/niveles`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await apiFetch(`${API_URL}/api/academico/niveles`);
             const data = await response.json();
             if (response.ok) setNiveles(data);
         } catch (error) { console.error(error); }
@@ -406,10 +395,7 @@ const AdminDashboard = () => {
     const fetchPersonal = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/financiero/personal`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await apiFetch(`${API_URL}/api/financiero/personal`);
             const data = await response.json();
             if (response.ok) setPersonal(data);
         } catch (error) {
@@ -425,10 +411,8 @@ const AdminDashboard = () => {
     const deletePersonal = async (id) => {
         if (!window.confirm('¿Está seguro de eliminar a este miembro del personal?')) return;
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/financiero/personal/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await apiFetch(`${API_URL}/api/financiero/personal/${id}`, {
+                method: 'DELETE'
             });
             if (response.ok) fetchPersonal();
         } catch (error) {
@@ -451,15 +435,13 @@ const AdminDashboard = () => {
         };
 
         try {
-            const token = localStorage.getItem('token');
             const url = editingPersonal
                 ? `${API_URL}/api/financiero/personal/${editingPersonal.id}`
                 : `${API_URL}/api/financiero/personal`;
-            const response = await fetch(url, {
+            const response = await apiFetch(url, {
                 method: editingPersonal ? 'PUT' : 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(personalData)
             });
@@ -487,12 +469,10 @@ const AdminDashboard = () => {
         };
 
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/academico/cursos`, {
+            const response = await apiFetch(`${API_URL}/api/academico/cursos`, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(cursoData)
             });
@@ -514,12 +494,10 @@ const AdminDashboard = () => {
         };
 
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/academico/aulas`, {
+            const response = await apiFetch(`${API_URL}/api/academico/aulas`, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(aulaData)
             });
@@ -545,16 +523,14 @@ const AdminDashboard = () => {
         };
 
         try {
-            const token = localStorage.getItem('token');
             const url = editingAlumno 
                 ? `${API_URL}/api/academico/alumnos/${editingAlumno.id}`
                 : `${API_URL}/api/academico/alumnos`;
             
-            const response = await fetch(url, {
+            const response = await apiFetch(url, {
                 method: editingAlumno ? 'PUT' : 'POST',
                 headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(alumnoData)
             });
@@ -574,10 +550,8 @@ const AdminDashboard = () => {
     const deleteAlumno = async (id) => {
         if (!window.confirm('¿Está seguro de eliminar este legajo?')) return;
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/academico/alumnos/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await apiFetch(`${API_URL}/api/academico/alumnos/${id}`, {
+                method: 'DELETE'
             });
             if (response.ok) fetchAlumnos();
         } catch (error) {
@@ -588,10 +562,9 @@ const AdminDashboard = () => {
     const fetchCursosYAulas = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
             const [resCursos, resAulas] = await Promise.all([
-                fetch(`${API_URL}/api/academico/cursos`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch(`${API_URL}/api/academico/aulas`, { headers: { 'Authorization': `Bearer ${token}` } })
+                apiFetch(`${API_URL}/api/academico/cursos`),
+                apiFetch(`${API_URL}/api/academico/aulas`)
             ]);
             const [dataCursos, dataAulas] = await Promise.all([resCursos.json(), resAulas.json()]);
             setCursos(dataCursos);
@@ -605,10 +578,7 @@ const AdminDashboard = () => {
 
     const fetchPreinscripciones = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/preinscripciones`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await apiFetch(`${API_URL}/api/preinscripciones`);
             const data = await response.json();
             if (response.ok) setPreinscripciones(data);
         } catch (error) {
@@ -621,10 +591,7 @@ const AdminDashboard = () => {
     const fetchAlumnos = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/academico/alumnos`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await apiFetch(`${API_URL}/api/academico/alumnos`);
             const data = await response.json();
             if (response.ok) setAlumnos(data);
         } catch (error) {
@@ -636,12 +603,10 @@ const AdminDashboard = () => {
 
     const updateStatus = async (id, nuevoEstado) => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/preinscripciones/${id}/status`, {
+            const response = await apiFetch(`${API_URL}/api/preinscripciones/${id}/status`, {
                 method: 'PATCH',
                 headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ estado: nuevoEstado })
             });
@@ -752,12 +717,10 @@ const AdminDashboard = () => {
         };
 
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/servicios/transporte/rutas`, {
+            const response = await apiFetch(`${API_URL}/api/servicios/transporte/rutas`, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(rutaData)
             });
@@ -786,10 +749,8 @@ const AdminDashboard = () => {
     const deleteRuta = async (id) => {
         if (!window.confirm('¿Eliminar ruta?')) return;
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/servicios/transporte/rutas/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await apiFetch(`${API_URL}/api/servicios/transporte/rutas/${id}`, {
+                method: 'DELETE'
             });
             if (response.ok) fetchServicios();
         } catch (error) { console.error(error); }
@@ -798,10 +759,8 @@ const AdminDashboard = () => {
     const deleteCuota = async (id) => {
         if (!window.confirm('¿Eliminar esta configuración de cuota?')) return;
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/financiero/cuotas-config/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await apiFetch(`${API_URL}/api/financiero/cuotas-config/${id}`, {
+                method: 'DELETE'
             });
             if (response.ok) fetchFinanzas();
         } catch (error) { console.error(error); }

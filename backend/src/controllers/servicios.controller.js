@@ -63,12 +63,9 @@ exports.reservarInstalacion = (req, res) => {
     const checkQuery = `
         SELECT COUNT(*) as count FROM instalaciones_reservas 
         WHERE instalacion_id = ? AND fecha = ? 
-        AND (
-            (hora_inicio < ? AND hora_fin > ?) OR
-            (hora_inicio < ? AND hora_fin > ?)
-        )
+        AND hora_inicio < ? AND hora_fin > ?
     `;
-    db.get(checkQuery, [instalacion_id, fecha, hora_fin, hora_inicio, hora_inicio, hora_fin], (err, row) => {
+    db.get(checkQuery, [instalacion_id, fecha, hora_fin, hora_inicio], (err, row) => {
         if (err) return res.status(500).json({ message: err.message });
         if (row.count > 0) return res.status(400).json({ message: "La instalación ya está reservada en ese horario." });
 

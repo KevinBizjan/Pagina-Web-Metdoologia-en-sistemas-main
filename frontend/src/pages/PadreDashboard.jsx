@@ -1,5 +1,5 @@
 import { API_URL } from '../config';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,21 +14,68 @@ const PadreDashboard = () => {
     const [alumnoSel, setAlumnoSel] = useState('');
     const [pagos, setPagos] = useState([]);
 
-    useEffect(() => {
-        fetchNotificaciones();
-        fetchHijosYSaldos();
-        fetchDisponibles();
-        fetchPagos();
-    }, []);
-
-    const fetchPagos = async () => {
+    const fetchPagos = useCallback(async () => {
         try {
             const response = await apiFetch(`${API_URL}/api/financiero/pagos`);
             if (response.ok) setPagos(await response.json());
         } catch (error) {
             console.error(error);
         }
-    };
+    }, [apiFetch]);
+
+    const fetchDisponibles = useCallback(async () => {
+        try {
+            const response = await apiFetch(`${API_URL}/api/academico/alumnos-disponibles`);
+            if (response.ok) setDisponibles(await response.json());
+        } catch (error) {
+            console.error(error);
+        }
+    }, [apiFetch]);
+
+    const fetchNotificaciones = useCallback(async () => {
+        try {
+            const response = await apiFetch(`${API_URL}/api/comunicacion/notificaciones`);
+            if (response.ok) setNotificaciones(await response.json());
+        } catch (error) {
+            console.error(error);
+        }
+    }, [apiFetch]);
+
+    const fetchHijosYSaldos = useCallback(async () => {
+        try {
+            const response = await apiFetch(`${API_URL}/api/academico/mis-hijos`);
+            if (!response.ok) return;
+            const lista = await response.json();
+            const saldos = await Promise.all(lista.map(async (h) => {
+                // Saldo + resumen académico real (promedio, asistencia, faltas) en paralelo.
+                const [rs, rr] = await Promise.all([
+                    apiFetch(`${API_URL}/api/financiero/saldo/${h.id}`),
+                    apiFetch(`${API_URL}/api/academico/mis-hijos/${h.id}/resumen`)
+                ]);
+                const s = rs.ok ? await rs.json() : { saldo_pendiente: 0 };
+                const resumen = rr.ok ? await rr.json() : {};
+                return {
+                    ...h,
+                    saldo_pendiente: Number(s.saldo_pendiente) || 0,
+                    promedio: resumen.promedio ?? null,
+                    asistencia_pct: resumen.asistencia_pct ?? null,
+                    faltas: resumen.faltas ?? 0,
+                    calificaciones: resumen.calificaciones || []
+                };
+            }));
+            setHijosReales(saldos);
+            setSaldoTotal(saldos.reduce((acc, h) => acc + h.saldo_pendiente, 0));
+        } catch (error) {
+            console.error(error);
+        }
+    }, [apiFetch]);
+
+    useEffect(() => {
+        fetchNotificaciones();
+        fetchHijosYSaldos();
+        fetchDisponibles();
+        fetchPagos();
+    }, [fetchNotificaciones, fetchHijosYSaldos, fetchDisponibles, fetchPagos]);
 
     // Descarga el comprobante de pago en PDF (solo lectura, de los hijos vinculados).
     const descargarComprobante = async (pagoId) => {
@@ -50,15 +97,6 @@ const PadreDashboard = () => {
         } catch (error) {
             console.error(error);
             alert('Error al descargar el comprobante');
-        }
-    };
-
-    const fetchDisponibles = async () => {
-        try {
-            const response = await apiFetch(`${API_URL}/api/academico/alumnos-disponibles`);
-            if (response.ok) setDisponibles(await response.json());
-        } catch (error) {
-            console.error(error);
         }
     };
 
@@ -96,44 +134,6 @@ const PadreDashboard = () => {
             } else {
                 alert(data.message || 'No se pudo desvincular el alumno.');
             }
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const fetchNotificaciones = async () => {
-        try {
-            const response = await apiFetch(`${API_URL}/api/comunicacion/notificaciones`);
-            if (response.ok) setNotificaciones(await response.json());
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const fetchHijosYSaldos = async () => {
-        try {
-            const response = await apiFetch(`${API_URL}/api/academico/mis-hijos`);
-            if (!response.ok) return;
-            const lista = await response.json();
-            const saldos = await Promise.all(lista.map(async (h) => {
-                // Saldo + resumen académico real (promedio, asistencia, faltas) en paralelo.
-                const [rs, rr] = await Promise.all([
-                    apiFetch(`${API_URL}/api/financiero/saldo/${h.id}`),
-                    apiFetch(`${API_URL}/api/academico/mis-hijos/${h.id}/resumen`)
-                ]);
-                const s = rs.ok ? await rs.json() : { saldo_pendiente: 0 };
-                const resumen = rr.ok ? await rr.json() : {};
-                return {
-                    ...h,
-                    saldo_pendiente: Number(s.saldo_pendiente) || 0,
-                    promedio: resumen.promedio ?? null,
-                    asistencia_pct: resumen.asistencia_pct ?? null,
-                    faltas: resumen.faltas ?? 0,
-                    calificaciones: resumen.calificaciones || []
-                };
-            }));
-            setHijosReales(saldos);
-            setSaldoTotal(saldos.reduce((acc, h) => acc + h.saldo_pendiente, 0));
         } catch (error) {
             console.error(error);
         }

@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+
+const FieldError = ({ error }) => error ? <span style={errorTextStyle}>{error}</span> : null;
 
 // Validadores por campo: devuelven '' (ok) o el mensaje de error.
 // Permiten mostrar el error inline apenas se completa cada campo.
@@ -45,7 +47,7 @@ const RegistroPage = () => {
     // Si ya hay sesión iniciada, no tiene sentido mostrar el registro.
     useEffect(() => {
         if (user) navigate('/padre');
-    }, [user]);
+    }, [user, navigate]);
 
     // Valida un campo puntual (en blur o cuando ya tenía error) y lo refleja inline.
     const checkField = (name, overrides = {}) => {
@@ -83,7 +85,6 @@ const RegistroPage = () => {
     };
 
     const campoStyle = (name) => ({ ...inputStyle, borderColor: errors[name] ? '#dc2626' : '#f1f5f9' });
-    const FieldError = ({ name }) => errors[name] ? <span style={errorTextStyle}>{errors[name]}</span> : null;
 
     return (
         <div style={{
@@ -157,7 +158,7 @@ const RegistroPage = () => {
                             style={campoStyle('nombre')}
                             placeholder="Ej: María González"
                         />
-                        <FieldError name="nombre" />
+                        <FieldError error={errors.nombre} />
                     </div>
                     <div style={{ marginBottom: '20px' }}>
                         <label style={labelStyle}>Correo electrónico</label>
@@ -169,7 +170,7 @@ const RegistroPage = () => {
                             style={campoStyle('email')}
                             placeholder="tucorreo@ejemplo.com"
                         />
-                        <FieldError name="email" />
+                        <FieldError error={errors.email} />
                     </div>
                     <div style={{ marginBottom: '20px' }}>
                         <label style={labelStyle}>Contraseña</label>
@@ -181,7 +182,7 @@ const RegistroPage = () => {
                             style={campoStyle('password')}
                             placeholder="Mín. 8: mayúscula, número y símbolo"
                         />
-                        <FieldError name="password" />
+                        <FieldError error={errors.password} />
                     </div>
                     <div style={{ marginBottom: '32px' }}>
                         <label style={labelStyle}>Repetir contraseña</label>
@@ -193,7 +194,7 @@ const RegistroPage = () => {
                             style={campoStyle('confirmar')}
                             placeholder="••••••••"
                         />
-                        <FieldError name="confirmar" />
+                        <FieldError error={errors.confirmar} />
                     </div>
                     <button type="submit" disabled={cargando} className="btn btn-violet" style={{
                         width: '100%', justifyContent: 'center', padding: '16px', fontSize: '1.1rem',

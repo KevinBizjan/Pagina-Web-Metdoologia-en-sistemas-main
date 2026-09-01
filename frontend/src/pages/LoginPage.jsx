@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+
+const FieldError = ({ error }) => error ? (
+    <span style={{ display: 'block', color: '#dc2626', fontSize: '0.78rem', fontWeight: 700, marginTop: '6px' }}>{error}</span>
+) : null;
 
 const LoginPage = () => {
     const [username, setUsername] = useState('');
@@ -27,12 +31,6 @@ const LoginPage = () => {
 
     const portal = getPortalInfo();
 
-    useEffect(() => {
-        if (user) {
-            redirectUser(user.rol);
-        }
-    }, [user]);
-
     const redirectUser = (rol) => {
         switch (rol) {
             case 'admin': navigate('/admin'); break;
@@ -42,6 +40,12 @@ const LoginPage = () => {
             default: navigate('/');
         }
     };
+
+    useEffect(() => {
+        if (user) {
+            redirectUser(user.rol);
+        }
+    }, [user]);
 
     // Valida un campo puntual con un mensaje descriptivo que orienta al usuario
     // sobre el dato esperado, sin revelar cuál credencial es incorrecta (seguridad).
@@ -83,9 +87,6 @@ const LoginPage = () => {
         border: `2px solid ${errors[name] ? '#dc2626' : '#f1f5f9'}`,
         fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s'
     });
-    const FieldError = ({ name }) => errors[name] ? (
-        <span style={{ display: 'block', color: '#dc2626', fontSize: '0.78rem', fontWeight: 700, marginTop: '6px' }}>{errors[name]}</span>
-    ) : null;
 
     return (
         <div style={{
@@ -158,7 +159,7 @@ const LoginPage = () => {
                             style={campoStyle('username')}
                             placeholder="Tu usuario"
                         />
-                        <FieldError name="username" />
+                        <FieldError error={errors.username} />
                     </div>
                     <div style={{ marginBottom: '32px' }}>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '800', fontSize: '0.85rem', color: 'var(--text-sm)', textTransform: 'uppercase' }}>Contraseña</label>
@@ -170,7 +171,7 @@ const LoginPage = () => {
                             style={campoStyle('password')}
                             placeholder="••••••••"
                         />
-                        <FieldError name="password" />
+                        <FieldError error={errors.password} />
                     </div>
                     <button type="submit" className="btn btn-violet" style={{ 
                         width: '100%', justifyContent: 'center', padding: '16px', fontSize: '1.1rem',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const Idiomas = () => {
   // La animación de entrada la controla este componente con su propio observer,

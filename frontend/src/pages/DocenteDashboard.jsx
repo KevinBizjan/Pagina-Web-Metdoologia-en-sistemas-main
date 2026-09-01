@@ -1,5 +1,5 @@
 import { API_URL } from '../config';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
 import Toast from '../components/Toast';
@@ -30,51 +30,39 @@ const DocenteDashboard = () => {
     // Modales servicios
     const [modal, setModal] = useState(null); // 'incidencia' | 'comedor' | 'reserva' | null
 
-    useEffect(() => {
-        fetchAlumnos();
-        fetchMaterias();
-        fetchInstalaciones();
-        fetchActividades();
-    }, []);
-
-    useEffect(() => {
-        if (actividadSel) fetchInscriptos(actividadSel);
-        else setInscriptos([]);
-    }, [actividadSel]);
-
-    useEffect(() => {
-        if (materiaSel) {
-            fetchCalificacionesMateria(materiaSel);
-        }
-    }, [materiaSel]);
-
-    const fetchCalificacionesMateria = async (matId) => {
+    const fetchAlumnos = async () => {
         try {
-            const res = await apiFetch(`${API_URL}/api/academico/calificaciones/materia/${matId}`);
-            if (res.ok) {
-                const data = await res.json();
-                const map = {};
-                data.forEach(c => {
-                    if (!map[c.alumno_id]) map[c.alumno_id] = c.nota;
-                });
-                setCalificacionesMateriaMap(map);
+            const response = await apiFetch(`${API_URL}/api/academico/alumnos`);
+            const data = await response.json();
+            if (response.ok) {
+                setAlumnos(data.map(a => ({ ...a, asistencia: 'Presente', notaTmp: '' })));
             }
-        } catch (err) {
-            console.error('Error al obtener calificaciones de la materia:', err);
+        } catch (error) {
+            console.error('Error:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const verHistorialAlumno = async (alumno) => {
-        setHistorialModal(alumno);
-        setHistorialData({ calificaciones: [], asistencias: [] });
+    const fetchMaterias = async () => {
         try {
-            const res = await apiFetch(`${API_URL}/api/academico/alumnos/${alumno.id}/historial-docente`);
-            if (res.ok) {
-                const data = await res.json();
-                setHistorialData(data);
+            const response = await apiFetch(`${API_URL}/api/academico/materias`);
+            if (response.ok) {
+                const data = await response.json();
+                setMaterias(data);
+                if (data.length > 0) setMateriaSel(String(data[0].id));
             }
-        } catch (err) {
-            console.error('Error al obtener historial de alumno:', err);
+        } catch (error) {
+            console.error('Error materias:', error);
+        }
+    };
+
+    const fetchInstalaciones = async () => {
+        try {
+            const response = await apiFetch(`${API_URL}/api/servicios/instalaciones`);
+            if (response.ok) setInstalaciones(await response.json());
+        } catch (error) {
+            console.error('Error instalaciones:', error);
         }
     };
 
@@ -100,6 +88,57 @@ const DocenteDashboard = () => {
             }
         } catch (error) {
             console.error('Error inscriptos:', error);
+        }
+    };
+
+    const fetchCalificacionesMateria = async (matId) => {
+        try {
+            const res = await apiFetch(`${API_URL}/api/academico/calificaciones/materia/${matId}`);
+            if (res.ok) {
+                const data = await res.json();
+                const map = {};
+                data.forEach(c => {
+                    if (!map[c.alumno_id]) map[c.alumno_id] = c.nota;
+                });
+                setCalificacionesMateriaMap(map);
+            }
+        } catch (err) {
+            console.error('Error al obtener calificaciones de la materia:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchAlumnos();
+        fetchMaterias();
+        fetchInstalaciones();
+        fetchActividades();
+    }, []);
+
+    useEffect(() => {
+        if (actividadSel) {
+            fetchInscriptos(actividadSel);
+        } else {
+            setInscriptos([]);
+        }
+    }, [actividadSel]);
+
+    useEffect(() => {
+        if (materiaSel) {
+            fetchCalificacionesMateria(materiaSel);
+        }
+    }, [materiaSel]);
+
+    const verHistorialAlumno = async (alumno) => {
+        setHistorialModal(alumno);
+        setHistorialData({ calificaciones: [], asistencias: [] });
+        try {
+            const res = await apiFetch(`${API_URL}/api/academico/alumnos/${alumno.id}/historial-docente`);
+            if (res.ok) {
+                const data = await res.json();
+                setHistorialData(data);
+            }
+        } catch (err) {
+            console.error('Error al obtener historial de alumno:', err);
         }
     };
 
@@ -137,42 +176,6 @@ const DocenteDashboard = () => {
             if (r.ok) { showToast('Calificación guardada con éxito', 'success'); fetchInscriptos(actividadSel); }
             else { const d = await r.json().catch(() => ({})); showToast(d.message || 'Error al guardar la calificación', 'error'); }
         } catch (err) { console.error(err); showToast('Error de conexión', 'error'); }
-    };
-
-    const fetchAlumnos = async () => {
-        try {
-            const response = await apiFetch(`${API_URL}/api/academico/alumnos`);
-            const data = await response.json();
-            if (response.ok) {
-                setAlumnos(data.map(a => ({ ...a, asistencia: 'Presente', notaTmp: '' })));
-            }
-        } catch (error) {
-            console.error('Error:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchMaterias = async () => {
-        try {
-            const response = await apiFetch(`${API_URL}/api/academico/materias`);
-            if (response.ok) {
-                const data = await response.json();
-                setMaterias(data);
-                if (data.length > 0) setMateriaSel(String(data[0].id));
-            }
-        } catch (error) {
-            console.error('Error materias:', error);
-        }
-    };
-
-    const fetchInstalaciones = async () => {
-        try {
-            const response = await apiFetch(`${API_URL}/api/servicios/instalaciones`);
-            if (response.ok) setInstalaciones(await response.json());
-        } catch (error) {
-            console.error('Error instalaciones:', error);
-        }
     };
 
     const handleAsistenciaChange = (id, nuevoEstado) => {

@@ -1,5 +1,5 @@
 import { API_URL } from '../config';
-import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react';
 
 const AuthContext = createContext();
 
@@ -7,17 +7,22 @@ const AuthContext = createContext();
 const INACTIVITY_LIMIT_MS = 30 * 60 * 1000;
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(() => {
+        try {
+            const savedUser = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            return savedUser && token ? JSON.parse(savedUser) : null;
+        } catch {
+            return null;
+        }
+    });
+    const [loading] = useState(false);
     const inactivityTimer = useRef(null);
 
-    useEffect(() => {
-        const savedUser = localStorage.getItem('user');
-        const token = localStorage.getItem('token');
-        if (savedUser && token) {
-            setUser(JSON.parse(savedUser));
-        }
-        setLoading(false);
+    const logout = useCallback(() => {
+        setUser(null);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
     }, []);
 
     // Cierre de sesión automático tras 30 minutos de inactividad.
@@ -43,7 +48,7 @@ export const AuthProvider = ({ children }) => {
             if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
             eventos.forEach(ev => window.removeEventListener(ev, reiniciarTemporizador));
         };
-    }, [user]);
+    }, [user, logout]);
 
     const login = async (username, password) => {
         try {
@@ -63,7 +68,7 @@ export const AuthProvider = ({ children }) => {
             } else {
                 return { success: false, message: data.message };
             }
-        } catch (error) {
+        } catch {
             return { success: false, message: 'Error de conexión con el servidor' };
         }
     };
@@ -83,19 +88,13 @@ export const AuthProvider = ({ children }) => {
             } else {
                 return { success: false, message: data.message };
             }
-        } catch (error) {
+        } catch {
             return { success: false, message: 'Error de conexión con el servidor' };
         }
     };
 
-    const logout = () => {
-        setUser(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-    };
-
     // Wrapper de fetch que adjunta el JWT y cierra la sesión automáticamente si el token expiró.
-    const apiFetch = async (url, options = {}) => {
+    const apiFetch = useCallback(async (url, options = {}) => {
         const token = localStorage.getItem('token');
         const headers = {
             ...(options.headers || {}),
@@ -106,7 +105,7 @@ export const AuthProvider = ({ children }) => {
             logout();
         }
         return response;
-    };
+    }, [logout]);
 
     return (
         <AuthContext.Provider value={{ user, login, registrar, logout, loading, apiFetch }}>

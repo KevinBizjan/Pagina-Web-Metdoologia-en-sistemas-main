@@ -1,5 +1,3 @@
-import React from 'react';
-
 const Servicios = () => {
   return (
     <section className="section servicios" id="servicios">

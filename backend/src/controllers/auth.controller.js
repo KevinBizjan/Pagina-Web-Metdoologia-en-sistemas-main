@@ -80,7 +80,7 @@ exports.login = (req, res) => {
 
         const token = jwt.sign(
             { id: user.id, username: user.username, rol: user.rol },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET || 'educar_jwt_secret_dev_key_2026',
             { expiresIn: '30m' }
         );
 
