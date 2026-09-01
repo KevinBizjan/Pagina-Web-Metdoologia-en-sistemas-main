@@ -1,26 +1,35 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [portalOpen, setPortalOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const dropdownRef = useRef(null);
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
+  // Cerrar dropdown al hacer click fuera del mismo
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setPortalOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   useEffect(() => {
     // Scrollspy: marca como activa la sección visible debajo del header sticky.
-    // El offset se calcula con la altura real del header para que la categoría
-    // resaltada coincida con la sección a la que apunta, también al hacer scroll.
-    // Nota: 'preinscripcion' no está en el menú, así que no se lista (Idiomas
-    // queda resaltado hasta que aparece el footer = Contacto).
     const ids = ['institucion', 'niveles', 'servicios', 'noticias', 'idiomas'];
 
     const handleScroll = () => {
       const header = document.querySelector('.topbar');
-      const offset = (header ? header.offsetHeight : 80) + 24;
+      const offset = (header ? header.offsetHeight : 72) + 20;
 
       // Si estamos arriba de todo, la categoría activa es "Inicio" ('').
       if (window.scrollY < 80) {
@@ -28,18 +37,13 @@ const Navbar = () => {
         return;
       }
 
-      // Desde la sección Preinscripción hacia abajo (CTA y footer) marcamos
-      // "Contacto" y se mantiene resaltado hasta el final de la página.
+      // Desde la sección Preinscripción hacia abajo marcamos "Contacto"
       const preins = document.getElementById('preinscripcion');
       if (preins && window.scrollY >= preins.offsetTop - offset) {
         setActiveSection('contacto');
         return;
       }
 
-      // Elegimos la sección por su posición real en la página: de todas las que
-      // ya pasaron bajo el header, la que esté más abajo (mayor offsetTop).
-      // Esto evita que el orden del menú (Actividades antes que Idiomas) choque
-      // con el orden del DOM (la sección Idiomas está físicamente antes).
       let current = '';
       let maxTop = -Infinity;
       ids.forEach((id) => {
@@ -66,55 +70,128 @@ const Navbar = () => {
     if (window.confirm('¿Estás seguro de que deseas cerrar la sesión?')) {
       logout();
       setIsOpen(false);
+      setPortalOpen(false);
       navigate('/');
     }
   };
 
   return (
-    <header className="topbar" style={{ background: 'linear-gradient(to right, #f8fafc, #eff6ff)', borderBottom: '2px solid var(--blue-lt)' }}>
+    <header className="topbar">
       <div className="topbar-inner">
         {/* Logo */}
-        <a href="/" className="logo" style={{ marginLeft: '-12px' }}>
-          <div className="logo-icon" style={{ width: '70px', height: '70px' }}>
-            <img src="/img/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <a href="/" className="logo">
+          <div className="logo-icon">
+            <img src="/img/logo.png" alt="Logo Educar" />
           </div>
           <div className="logo-text">
-            <span style={{ fontSize: '1.2rem', fontFamily: 'Playfair Display, serif', fontWeight: 900, lineHeight: 1.3 }}>EDUCAR</span>
-            <span style={{ fontSize: '0.7rem', fontFamily: 'Playfair Display, serif', fontWeight: 800, lineHeight: 1.3 }}>Para Transformar</span>
+            <span className="title">EDUCAR</span>
+            <span className="subtitle">Para Transformar</span>
           </div>
         </a>
 
-        {/* Nav Desktop */}
-        <nav>
+        {/* Nav Desktop (Centro) */}
+        <nav className="nav-desktop">
           <a href="/" className={activeSection === '' ? 'active' : ''}>Inicio</a>
           <a href="#institucion" className={activeSection === 'institucion' ? 'active' : ''}>Nosotros</a>
-          <a href="#niveles" className={activeSection === 'niveles' ? 'active' : ''}>Niveles Educativos</a>
+          <a href="#niveles" className={activeSection === 'niveles' ? 'active' : ''}>Niveles</a>
           <a href="#servicios" className={activeSection === 'servicios' ? 'active' : ''}>Servicios</a>
           <a href="#noticias" className={activeSection === 'noticias' ? 'active' : ''}>Actividades</a>
           <a href="#idiomas" className={activeSection === 'idiomas' ? 'active' : ''}>Idiomas</a>
           <a href="#contacto" className={activeSection === 'contacto' ? 'active' : ''}>Contacto</a>
         </nav>
 
-        {/* Buttons */}
+        {/* Buttons / Portal Dropdown (Derecha) */}
         <div className="topbar-btns">
           {!user ? (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <Link to="/login?role=padre" className="btn btn-green" style={{ fontSize: '0.8rem', padding: '10px 14px' }}>👨‍👩‍👧 Acceso Padres</Link>
-              <Link to="/login?role=alumno" className="btn btn-violet" style={{ fontSize: '0.8rem', padding: '10px 14px' }}>🎒 Acceso Alumnos</Link>
-              <Link to="/login?role=docente" className="btn btn-blue" style={{ fontSize: '0.8rem', padding: '10px 14px' }}>👨‍🏫 Acceso Maestros</Link>
+            <div className="portal-dropdown-container portal-dropdown-wrapper" ref={dropdownRef}>
+              <button
+                type="button"
+                className={`portal-trigger-btn ${portalOpen ? 'open' : ''}`}
+                onClick={() => setPortalOpen(!portalOpen)}
+                aria-expanded={portalOpen}
+                aria-label="Menú de acceso a portales institucionales"
+              >
+                <span>Portal Institucional</span>
+                <span className="chevron">▾</span>
+              </button>
+
+              {portalOpen && (
+                <div className="portal-dropdown-menu">
+                  <Link
+                    to="/login?role=padre"
+                    className="portal-dropdown-item pdi-item-padre"
+                    onClick={() => setPortalOpen(false)}
+                  >
+                    <div className="portal-dropdown-icon pdi-padre">👨‍👩‍👧</div>
+                    <div className="portal-dropdown-text">
+                      <span className="portal-dropdown-title">Portal Familias</span>
+                      <span className="portal-dropdown-desc">Seguimiento, pagos y boletines</span>
+                    </div>
+                  </Link>
+
+                  <Link
+                    to="/login?role=alumno"
+                    className="portal-dropdown-item pdi-item-alumno"
+                    onClick={() => setPortalOpen(false)}
+                  >
+                    <div className="portal-dropdown-icon pdi-alumno">🎒</div>
+                    <div className="portal-dropdown-text">
+                      <span className="portal-dropdown-title">Portal Alumnos</span>
+                      <span className="portal-dropdown-desc">Clases, notas y actividades</span>
+                    </div>
+                  </Link>
+
+                  <Link
+                    to="/login?role=docente"
+                    className="portal-dropdown-item pdi-item-docente"
+                    onClick={() => setPortalOpen(false)}
+                  >
+                    <div className="portal-dropdown-icon pdi-docente">👨‍🏫</div>
+                    <div className="portal-dropdown-text">
+                      <span className="portal-dropdown-title">Portal Docentes</span>
+                      <span className="portal-dropdown-desc">Asistencia y calificaciones</span>
+                    </div>
+                  </Link>
+
+                  <div className="portal-dropdown-divider"></div>
+
+                  <Link
+                    to="/login?role=admin"
+                    className="portal-dropdown-item pdi-item-admin"
+                    onClick={() => setPortalOpen(false)}
+                  >
+                    <div className="portal-dropdown-icon pdi-admin">🛡️</div>
+                    <div className="portal-dropdown-text">
+                      <span className="portal-dropdown-title">Administración</span>
+                      <span className="portal-dropdown-desc">Gestión escolar e informes</span>
+                    </div>
+                  </Link>
+                </div>
+              )}
             </div>
           ) : (
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span style={{ fontWeight: 800, color: 'var(--blue)', fontSize: '0.8rem', marginRight: '8px' }}>Hola, {user.nombre}</span>
-              <Link to={`/${user.rol}`} className="btn btn-violet" style={{ fontSize: '0.75rem', padding: '6px 12px' }}>Mi Panel</Link>
-              <button onClick={handleLogout} className="btn" style={{ background: 'white', color: 'var(--text)', fontSize: '0.75rem', padding: '6px 12px', border: '1px solid #e2e8f0' }}>Salir</button>
+            <div className="user-badge-container">
+              <span className="user-greeting">Hola, {user.nombre}</span>
+              <Link to={`/${user.rol}`} className="btn-panel">Mi Panel</Link>
+              <button type="button" onClick={handleLogout} className="btn-logout">Salir</button>
             </div>
           )}
-          <div className="hamburger" id="menuBtn" onClick={toggleMenu}>
-            <span></span><span></span><span></span>
-          </div>
+
+          {/* Botón menú móvil */}
+          <button 
+            type="button" 
+            className="hamburger" 
+            id="menuBtn" 
+            onClick={toggleMenu}
+            aria-label="Abrir menú de navegación"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
         </div>
       </div>
+
       {/* Mobile Nav */}
       <nav className={`mobile-nav ${isOpen ? 'open' : ''}`} id="mobileNav">
         <a href="/" onClick={() => setIsOpen(false)}>Inicio</a>
@@ -124,7 +201,31 @@ const Navbar = () => {
         <a href="#noticias" onClick={() => setIsOpen(false)}>Actividades</a>
         <a href="#idiomas" onClick={() => setIsOpen(false)}>Idiomas</a>
         <a href="#contacto" onClick={() => setIsOpen(false)}>Contacto</a>
-        {user && <a href="#" onClick={handleLogout}>Cerrar Sesión</a>}
+        
+        {!user ? (
+          <div className="mobile-portales-section">
+            <span className="mobile-portales-title">Portales Institucionales</span>
+            <Link to="/login?role=padre" className="mobile-portal-link" onClick={() => setIsOpen(false)}>
+              <span>👨‍👩‍👧</span> <span>Portal Familias</span>
+            </Link>
+            <Link to="/login?role=alumno" className="mobile-portal-link" onClick={() => setIsOpen(false)}>
+              <span>🎒</span> <span>Portal Alumnos</span>
+            </Link>
+            <Link to="/login?role=docente" className="mobile-portal-link" onClick={() => setIsOpen(false)}>
+              <span>👨‍🏫</span> <span>Portal Docentes</span>
+            </Link>
+            <Link to="/login?role=admin" className="mobile-portal-link" onClick={() => setIsOpen(false)}>
+              <span>🛡️</span> <span>Portal Administración</span>
+            </Link>
+          </div>
+        ) : (
+          <div className="mobile-portales-section">
+            <Link to={`/${user.rol}`} onClick={() => setIsOpen(false)} style={{ color: 'var(--blue)', fontWeight: 'bold' }}>
+              Ir a Mi Panel ({user.nombre})
+            </Link>
+            <a href="#" onClick={handleLogout} style={{ color: '#dc2626' }}>Cerrar Sesión</a>
+          </div>
+        )}
       </nav>
     </header>
   );
